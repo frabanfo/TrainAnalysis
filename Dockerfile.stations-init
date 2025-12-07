@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-init.txt .
+RUN pip install --no-cache-dir -r requirements-init.txt
+
+COPY src/database/ src/database/
+COPY src/data_ingestion/fetch_lombardia_stations.py src/data_ingestion/fetch_lombardia_stations.py
+COPY src/data_ingestion/__init__.py src/data_ingestion/__init__.py
+COPY scripts/init_stations.py scripts/init_stations.py
+
+# Create necessary directories
+RUN mkdir -p logs
+
+# Set Python path
+ENV PYTHONPATH=/app/src

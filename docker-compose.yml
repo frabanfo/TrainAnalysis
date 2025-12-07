@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: railway_analysis
+      POSTGRES_USER: railway_user
+      POSTGRES_PASSWORD: railway_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U railway_user -d railway_analysis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  stations-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.stations-init
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=railway_analysis
+      - POSTGRES_USER=railway_user
+      - POSTGRES_PASSWORD=railway_pass
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["python", "scripts/init_stations.py"]
+    restart: "no"
+
+volumes:
+  postgres_data:
