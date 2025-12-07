@@ -1,0 +1,74 @@
+CREATE TABLE IF NOT EXISTS stations (
+    station_code TEXT PRIMARY KEY,
+    station_name TEXT NOT NULL,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS trains (
+    id SERIAL PRIMARY KEY,
+    train_id TEXT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    station_code TEXT REFERENCES stations(station_code),
+    scheduled_time TIMESTAMP WITH TIME ZONE,
+    actual_time TIMESTAMP WITH TIME ZONE,
+    delay_minutes INTEGER,
+    train_category TEXT,
+    route TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(train_id, timestamp, station_code)
+);
+
+CREATE TABLE IF NOT EXISTS weather (
+    id SERIAL PRIMARY KEY,
+    station_code TEXT REFERENCES stations(station_code),
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    temperature REAL,
+    wind_speed REAL,
+    precip_mm REAL,
+    weather_code INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(station_code, timestamp)
+);
+
+CREATE TABLE IF NOT EXISTS train_weather_integrated (
+    id SERIAL PRIMARY KEY,
+    train_id TEXT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    station_code TEXT REFERENCES stations(station_code),
+    delay_minutes INTEGER,
+    temperature REAL,
+    wind_speed REAL,
+    precip_mm REAL,
+    weather_code INTEGER,
+    train_category TEXT,
+    route TEXT,
+    -- Derived features
+    hour_of_day INTEGER,
+    day_of_week INTEGER,
+    is_weekend BOOLEAN,
+    is_rush_hour BOOLEAN,
+    temp_category TEXT,
+    is_raining BOOLEAN,
+    rain_intensity TEXT,
+    wind_category TEXT,
+    is_delayed BOOLEAN,
+    delay_category TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS data_quality_metrics (
+    id SERIAL PRIMARY KEY,
+    table_name TEXT NOT NULL,
+    metric_name TEXT NOT NULL,
+    metric_value REAL,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    details JSONB
+);
+
+CREATE INDEX IF NOT EXISTS idx_trains_station_timestamp ON trains(station_code, timestamp);
+CREATE INDEX IF NOT EXISTS idx_weather_station_timestamp ON weather(station_code, timestamp);
+CREATE INDEX IF NOT EXISTS idx_integrated_station_timestamp ON train_weather_integrated(station_code, timestamp);
+CREATE INDEX IF NOT EXISTS idx_trains_delay ON trains(delay_minutes);
+CREATE INDEX IF NOT EXISTS idx_integrated_delay ON train_weather_integrated(delay_minutes);
