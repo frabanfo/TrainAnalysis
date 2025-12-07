@@ -33,5 +33,23 @@ services:
     command: ["python", "scripts/init_stations.py"]
     restart: "no"
 
+  railway-pipeline:
+    build: .
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=railway_analysis
+      - POSTGRES_USER=railway_user
+      - POSTGRES_PASSWORD=railway_pass
+    volumes:
+      - ./data:/app/data
+      - ./notebooks:/app/notebooks
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      stations-init:
+        condition: service_completed_successfully
+    command: ["python", "src/main.py"]
+
 volumes:
   postgres_data:

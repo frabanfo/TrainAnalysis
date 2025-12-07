@@ -78,47 +78,32 @@ class LombardiaStationsFetcher:
             return []
     
     def store_stations(self, stations: List[Dict[str, Any]]) -> bool:
-        """Store stations in database"""
+        """Store stations in database using batch UPSERT"""
         if not stations:
             logger.warning("No stations to store")
             return False
-        
+
         try:
-            logger.info(f"Storing {len(stations)} stations in database")
-            
-            success_count = 0
-            
-            with self.db_manager.engine.connect() as conn:
-                for _, row in df.iterrows():
-                    try:
-                        upsert_sql = """
-                        INSERT INTO stations (station_code, station_name, latitude, longitude)
-                        VALUES (:station_code, :station_name, :latitude, :longitude)
-                        ON CONFLICT (station_code) 
-                        DO UPDATE SET 
-                            station_name = EXCLUDED.station_name,
-                            latitude = COALESCE(EXCLUDED.latitude, stations.latitude),
-                            longitude = COALESCE(EXCLUDED.longitude, stations.longitude)
-                        """
-                        
-                        from sqlalchemy import text
-                        conn.execute(text(upsert_sql), {
-                            'station_code': row['station_code'],
-                            'station_name': row['station_name'],
-                            'latitude': row['latitude'],
-                            'longitude': row['longitude']
-                        })
-                        success_count += 1
-                        
-                    except Exception as row_error:
-                        logger.warning(f"Failed to store station {row['station_code']}: {str(row_error)}")
-                        continue
-                
-                conn.commit()
-            
-            logger.info(f"Successfully stored {success_count}/{len(df)} stations")
-            return success_count > 0
-            
+            logger.info(f"Storing {len(stations)} stations in database (batch mode)")
+
+            upsert_sql = """
+            INSERT INTO stations (station_code, station_name, latitude, longitude)
+            VALUES (:station_code, :station_name, :latitude, :longitude)
+            ON CONFLICT (station_code)
+            DO UPDATE SET
+                station_name = EXCLUDED.station_name,
+                latitude = COALESCE(EXCLUDED.latitude, stations.latitude),
+                longitude = COALESCE(EXCLUDED.longitude, stations.longitude)
+            """
+
+            from sqlalchemy import text
+
+            with self.db_manager.engine.begin() as conn:
+                conn.execute(text(upsert_sql), stations) 
+
+            logger.info(f"Successfully stored {len(stations)} stations")
+            return True
+
         except Exception as e:
             logger.error(f"Error storing stations: {str(e)}")
             return False
