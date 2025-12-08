@@ -17,7 +17,7 @@ broker = PostgresBroker(url=DATABASE_URL)
 
 results_backend = PostgresBackend(url=DATABASE_URL)
 
-# broker.add_middleware(AgeLimit(max_age=3600000))  # 1 hour max age
+broker.add_middleware(AgeLimit(max_age=3600000))  # 1 hour max age - auto cleanup old messages
 broker.add_middleware(TimeLimit(time_limit=1800000))  # 30 min time limit
 broker.add_middleware(Callbacks())
 broker.add_middleware(Pipelines())
