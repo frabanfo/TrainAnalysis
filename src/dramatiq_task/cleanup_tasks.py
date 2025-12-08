@@ -29,6 +29,8 @@ def cleanup_old_processed_messages(hours_old: int = 1):
             WHERE created_at < %s 
             AND state IN ('done')
         """, (cutoff_time,))
+
+        # left rejected and failed messages in case of debugging
         
         deleted_count = cursor.rowcount
         conn.commit()
