@@ -49,7 +49,7 @@ services:
       - ./logs:/app/logs
     command: >
       dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.processing_tasks
-      --processes 4
+      --processes 2
       --threads 2
       --queues train_queue weather_queue processing_queue default
       --verbose
@@ -72,5 +72,20 @@ services:
         condition: service_completed_successfully
     command: ["python", "src/scheduler.py"]
 
+  cleanup-scheduler:
+    build: .
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=railway_analysis
+      - POSTGRES_USER=railway_user
+      - POSTGRES_PASSWORD=railway_pass
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dramatiq-worker:
+        condition: service_started
+    command: ["python", "src/cleanup_scheduler.py"]
+    restart: unless-stopped
+    
 volumes:
   postgres_data:
