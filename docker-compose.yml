@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
@@ -33,23 +31,46 @@ services:
     command: ["python", "scripts/init_stations.py"]
     restart: "no"
 
-  railway-pipeline:
+  dramatiq-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dramatiq
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=railway_analysis
+      - POSTGRES_USER=railway_user
+      - POSTGRES_PASSWORD=railway_pass
+      - POSTGRES_PORT=5432
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+    command: >
+      dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.processing_tasks
+      --processes 4
+      --threads 2
+      --queues train_queue weather_queue processing_queue default
+      --verbose
+    restart: unless-stopped
+
+  railway-scheduler:
     build: .
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=railway_analysis
       - POSTGRES_USER=railway_user
       - POSTGRES_PASSWORD=railway_pass
+      - COLLECTION_DAYS=30
     volumes:
-      - ./data:/app/data
-      - ./notebooks:/app/notebooks
       - ./logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
       stations-init:
         condition: service_completed_successfully
-    command: ["python", "src/main.py"]
+    command: ["python", "src/scheduler.py"]
 
 volumes:
   postgres_data:
