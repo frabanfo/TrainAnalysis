@@ -1,0 +1,3 @@
+dramatiq
+dramatiq-pg 
+psycopg2-binary
