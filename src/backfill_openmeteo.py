@@ -28,8 +28,8 @@ def main():
     #stations_csv = os.path.join(ROOT_DIR, "config", "stations_lombardia.csv")
     client = OpenMeteoClient()
 
-    start = datetime(2025, 9, 10)
-    end   = datetime(2025, 12, 1)
+    start = datetime(2025, 1, 1)
+    end   = datetime(2025, 1, 30)
 
     logger.info(f"Backfill range: {start.date()} → {end.date()}")
 

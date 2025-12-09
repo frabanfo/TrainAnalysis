@@ -17,7 +17,7 @@ class OpenMeteoClient:
     """Client for Open-Meteo API to collect weather data at scale"""
 
     def __init__(self, stations_csv: str | None = None):
-        self.base_url = "https://api.open-meteo.com/v1"
+        self.base_url = "https://archive-api.open-meteo.com/v1/archive"
         self.session = requests.Session()
 
         # TODO: qui metterai le 324 stazioni lombarde
@@ -180,16 +180,18 @@ class OpenMeteoClient:
                 status = resp.status_code
 
                 # gestione esplicita rate limit
-                if status == 429:
-                    logger.warning(
-                        f"429 Too Many Requests (attempt {attempt}/{max_retries}), "
-                        f"sleep {backoff}s"
-                    )
-                    time.sleep(backoff)
-                    backoff *= 2
-                    continue
+                if 400 <= status < 500 and status != 429:
+                    try:
+                        body = resp.text
+                    except Exception:
+                        body = "<no body>"
 
-                resp.raise_for_status()
+                    logger.error(
+                        f"Client error {status} for URL {resp.url}. "
+                        f"Body (first 200 chars): {body[:200]}"
+                    )
+                    resp.raise_for_status()
+
                 return resp.json()
 
             except requests.exceptions.RequestException as e:
@@ -216,7 +218,6 @@ class OpenMeteoClient:
             "precipitation",
             "wind_speed_10m",
             "weather_code",
-            "visibility",
         ]
 
         params = {
@@ -228,7 +229,7 @@ class OpenMeteoClient:
             "timezone": "Europe/Rome",
         }
 
-        url = f"{self.base_url}/forecast"
+        url = f"{self.base_url}"
         logger.debug(f"Request Open-Meteo: {url} {params}")
 
         data = self._request_with_retry(url, params)
@@ -245,7 +246,6 @@ class OpenMeteoClient:
             precipitations = hourly.get("precipitation", [])
             wind_speeds = hourly.get("wind_speed_10m", [])
             weather_codes = hourly.get("weather_code", [])
-            visibility = hourly.get("visibility", [])
 
             for i, timestamp in enumerate(times):
                 record = {
@@ -258,7 +258,6 @@ class OpenMeteoClient:
                     "wind_speed": wind_speeds[i] if i < len(wind_speeds) else None,
                     "precip_mm": precipitations[i] if i < len(precipitations) else None,
                     "weather_code": weather_codes[i] if i < len(weather_codes) else None,
-                    "visibility": visibility[i] if i < len(visibility) else None,
                 }
                 processed_data.append(record)
 
@@ -309,7 +308,6 @@ class OpenMeteoClient:
             "wind_speed",
             "precip_mm",
             "weather_code",
-            "visibility",
         ]
 
         with open(csv_path, "a", encoding="utf-8", newline="") as f:
