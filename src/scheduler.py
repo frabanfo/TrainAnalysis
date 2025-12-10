@@ -26,6 +26,7 @@ def start_pipeline(start_date: datetime, end_date: datetime):
         
         # Create pipeline for this chunk
         pipeline_messages = full_data_pipeline(
+        
             current_start.isoformat(),
             current_end.isoformat(),
             f"chunk_{chunk_id}"

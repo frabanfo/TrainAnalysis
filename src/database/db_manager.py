@@ -97,4 +97,82 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error storing train data: {str(e)}")
             return False
+    
+    def store_weather_data(self, df: pd.DataFrame) -> bool:
+        """Store weather data in the database"""
+        if df.empty:
+            logger.warning("No weather data to store")
+            return False
+        
+        try:
+            df_clean = df.copy()
+            
+            # Map CSV columns to DB columns
+            column_mapping = {
+                'station_code': 'station_code',
+                'timestamp': 'timestamp', 
+                'temperature': 'temperature',
+                'wind_speed': 'wind_speed',
+                'precip_mm': 'precip_mm',
+                'weather_code': 'weather_code'
+            }
+            
+            # Check required columns
+            required_columns = ['station_code', 'timestamp']
+            missing_columns = [col for col in required_columns if col not in df_clean.columns]
+            
+            if missing_columns:
+                logger.error(f"Missing required columns: {missing_columns}")
+                return False
+            
+            # Select and rename columns
+            db_columns = [col for col in column_mapping.keys() if col in df_clean.columns]
+            df_clean = df_clean[db_columns].rename(columns=column_mapping)
+            
+            # Convert timestamp to proper format
+            df_clean['timestamp'] = pd.to_datetime(df_clean['timestamp'])
+            
+            # Insert data in batches with duplicate handling
+            batch_size = 100
+            total_records = len(df_clean)
+            inserted_count = 0
+            
+            for i in range(0, total_records, batch_size):
+                batch = df_clean.iloc[i:i+batch_size]
+                
+                try:
+                    # Use pandas to_sql - duplicates will be handled by UNIQUE constraint
+                    batch.to_sql(
+                        'weather', 
+                        self.engine, 
+                        if_exists='append', 
+                        index=False,
+                        method='multi',
+                        chunksize=batch_size
+                    )
+                    inserted_count += len(batch)
+                except Exception as e:
+                    # If batch fails due to duplicates, try individual inserts
+                    logger.warning(f"Batch insert failed, trying individual inserts: {e}")
+                    for _, row in batch.iterrows():
+                        try:
+                            row_df = pd.DataFrame([row])
+                            row_df.to_sql(
+                                'weather', 
+                                self.engine, 
+                                if_exists='append', 
+                                index=False
+                            )
+                            inserted_count += 1
+                        except Exception:
+                            # Skip duplicates silently
+                            continue
+            
+            logger.info(f"Stored {inserted_count}/{len(df_clean)} weather records (duplicates skipped)")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error storing weather data: {str(e)}")
+            logger.error(f"DataFrame columns: {df.columns.tolist()}")
+            return False
      
