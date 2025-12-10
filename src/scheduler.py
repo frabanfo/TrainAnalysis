@@ -13,7 +13,7 @@ def setup_logging():
     logger.info("Dramatiq Scheduler started")
 
 def start_pipeline(start_date: datetime, end_date: datetime):
-    chunk_size_days = 30
+    chunk_size_days = 5
     current_start = start_date
     pipelines = []
     chunk_id = 0
