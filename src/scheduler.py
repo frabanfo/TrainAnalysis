@@ -26,23 +26,26 @@ def start_pipeline(start_date: datetime, end_date: datetime):
         
         # Create pipeline for this chunk
         pipeline_messages = full_data_pipeline(
-        
             current_start.isoformat(),
             current_end.isoformat(),
-            f"trainstats_chunk_{chunk_id}"
+            f"chunk_{chunk_id}"
         )
         
-        # Send pipeline
-        # for message in pipeline_messages:
-        #     message.send()
+        # Send each message individually to ensure both train and weather tasks are queued
+        for message in pipeline_messages:
+            # Use the pipeline approach but run it immediately
+            pipeline([message]).run()
+            logger.info(f"📤 Queued task: {message.actor_name} for chunk {chunk_id}")
         
-        pipelines.append(pipeline(pipeline_messages).run())
+        pipelines.append(len(pipeline_messages))
         current_start = current_end + timedelta(days=1)
     
-    logger.info(f"Scheduled {len(pipelines)} TrainStats pipelines with {chunk_id} chunks")
+    total_tasks = sum(pipelines)
+    logger.info(f"📊 Scheduled {len(pipelines)} pipeline chunks with {total_tasks} total tasks ({chunk_id} chunks)")
     
     return {
         'pipelines': len(pipelines),
+        'total_tasks': total_tasks,
         'chunks': chunk_id
     }
 
