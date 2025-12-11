@@ -64,7 +64,8 @@ services:
       - POSTGRES_DB=railway_analysis
       - POSTGRES_USER=railway_user
       - POSTGRES_PASSWORD=railway_pass
-      - COLLECTION_DAYS=30  # Collect 30 days of historical data (yesterday to -30 days)
+      - COLLECTION_DAYS=3  
+      - CHUNK_SIZE=1
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data  # Mount data directory for raw JSON backups
