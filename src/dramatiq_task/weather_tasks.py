@@ -10,7 +10,7 @@ from data_ingestion.openmeteo_client import OpenMeteoClient
 from .dramatiq_config import WEATHER_QUEUE
 
 
-@dramatiq.actor(queue_name=WEATHER_QUEUE, max_retries=3, min_backoff=30000, max_backoff=300000)
+@dramatiq.actor(queue_name=WEATHER_QUEUE, max_retries=3, min_backoff=30000, max_backoff=300000, store_results=True)
 def collect_weather_data(start_date: str, end_date: str, chunk_id: str = None) -> Dict[str, Any]:
     """
     Task Dramatiq per raccogliere dati meteo per tutte le stazioni in un range di date.

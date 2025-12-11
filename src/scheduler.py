@@ -24,19 +24,21 @@ def start_pipeline(start_date: datetime, end_date: datetime):
         
         logger.info(f"Scheduling pipeline chunk {chunk_id}: {current_start.date()} to {current_end.date()}")
         
-        # Create pipeline for this chunk
-        pipeline_messages = full_data_pipeline(
-        
+        # Get pipeline items for this chunk
+        pipeline_items = full_data_pipeline(
             current_start.isoformat(),
             current_end.isoformat(),
             f"trainstats_chunk_{chunk_id}"
         )
         
-        # Send pipeline
-        # for message in pipeline_messages:
-        #     message.send()
+        results = []
+        for item in pipeline_items:
+            if hasattr(item, 'run'):
+                results.append(item.run())
+            else:
+                results.append(item.send())
         
-        pipelines.append(pipeline(pipeline_messages).run())
+        pipelines.append(results)
         current_start = current_end + timedelta(days=1)
     
     logger.info(f"Scheduled {len(pipelines)} TrainStats pipelines with {chunk_id} chunks")
