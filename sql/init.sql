@@ -47,6 +47,9 @@ CREATE TABLE IF NOT EXISTS trains (
     delay_minutes INTEGER,
     train_category TEXT,
     route TEXT,
+    delay_status TEXT CHECK (delay_status IN ('on_time', 'delayed', 'early', 'cancelled')),
+    destination TEXT,
+    is_cancelled BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(train_id, timestamp, station_code)
 );
@@ -75,7 +78,9 @@ CREATE TABLE IF NOT EXISTS train_weather_integrated (
     weather_code INTEGER,
     train_category TEXT,
     route TEXT,
-    -- Derived features
+    delay_status TEXT CHECK (delay_status IN ('on_time', 'delayed', 'early', 'cancelled')),
+    destination TEXT,
+    is_cancelled BOOLEAN DEFAULT FALSE,
     hour_of_day INTEGER,
     day_of_week INTEGER,
     is_weekend BOOLEAN,
@@ -98,8 +103,9 @@ CREATE TABLE IF NOT EXISTS data_quality_metrics (
     details JSONB
 );
 
+-- Essential indexes only
 CREATE INDEX IF NOT EXISTS idx_trains_station_timestamp ON trains(station_code, timestamp);
 CREATE INDEX IF NOT EXISTS idx_weather_station_timestamp ON weather(station_code, timestamp);
 CREATE INDEX IF NOT EXISTS idx_integrated_station_timestamp ON train_weather_integrated(station_code, timestamp);
-CREATE INDEX IF NOT EXISTS idx_trains_delay ON trains(delay_minutes);
-CREATE INDEX IF NOT EXISTS idx_integrated_delay ON train_weather_integrated(delay_minutes);
+CREATE INDEX IF NOT EXISTS idx_trains_delay_status ON trains(delay_status);
+CREATE INDEX IF NOT EXISTS idx_integrated_delay_status ON train_weather_integrated(delay_status);

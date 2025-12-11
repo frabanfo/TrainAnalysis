@@ -47,6 +47,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./logs:/app/logs
+      - ./data:/app/data  # Mount data directory for raw JSON backups
     command: >
       dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.processing_tasks
       --processes 2
@@ -62,9 +63,10 @@ services:
       - POSTGRES_DB=railway_analysis
       - POSTGRES_USER=railway_user
       - POSTGRES_PASSWORD=railway_pass
-      - COLLECTION_DAYS=30
+      - COLLECTION_DAYS=30  # Collect 30 days of historical data (yesterday to -30 days)
     volumes:
       - ./logs:/app/logs
+      - ./data:/app/data  # Mount data directory for raw JSON backups
     depends_on:
       postgres:
         condition: service_healthy

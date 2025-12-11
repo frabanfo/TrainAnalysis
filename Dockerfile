@@ -13,6 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p data/raw/viaggiotreno data/raw/openmeteo data/curated logs notebooks scripts
+RUN mkdir -p data/raw/trainstats data/raw/openmeteo data/curated logs notebooks scripts
 
 CMD ["python", "src/main.py"]
