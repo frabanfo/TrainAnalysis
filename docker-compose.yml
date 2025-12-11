@@ -46,12 +46,13 @@ services:
       - POSTGRES_PORT=5432
     volumes:
       - ./src:/app/src
+      - ./scripts:/app/scripts
       - ./logs:/app/logs
       - ./data:/app/data  # Mount data directory for raw JSON backups
     command: >
       dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.processing_tasks
       --processes 2
-      --threads 2
+      --threads 4
       --queues train_queue weather_queue processing_queue default
       --verbose
     restart: unless-stopped
