@@ -63,14 +63,14 @@ def check_stations_exist():
         logger.warning(f"Error checking existing stations: {str(e)}")
         return False
 
-def fetch_lombardia_stations():
+def fetch_stations():
     """Fetch and store Lombardia stations"""
     try:
-        from data_ingestion.fetch_lombardia_stations import LombardiaStationsFetcher
+        from data_ingestion.fetch_stations import StationsFetcher
         
         logger.info("Starting Lombardia stations initialization...")
         
-        fetcher = LombardiaStationsFetcher()
+        fetcher = StationsFetcher()
         success = fetcher.run()
         
         if success:
@@ -96,7 +96,7 @@ def main():
         logger.info("Lombardia stations already initialized, skipping fetch")
         return
     
-    success = fetch_lombardia_stations()
+    success = fetch_stations()
     
     if success:
         logger.info("Lombardia stations initialization completed!")

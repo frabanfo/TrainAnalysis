@@ -13,7 +13,7 @@ def setup_logging():
     logger.info("Dramatiq Scheduler started")
 
 def start_pipeline(start_date: datetime, end_date: datetime):
-    chunk_size_days = 30
+    chunk_size_days = 5
     current_start = start_date
     pipelines = []
     chunk_id = 0
@@ -22,25 +22,24 @@ def start_pipeline(start_date: datetime, end_date: datetime):
         current_end = min(current_start + timedelta(days=chunk_size_days-1), end_date)
         chunk_id += 1
         
-        logger.info(f"📋 Scheduling pipeline chunk {chunk_id}: {current_start.date()} to {current_end.date()}")
+        logger.info(f"Scheduling pipeline chunk {chunk_id}: {current_start.date()} to {current_end.date()}")
         
         # Create pipeline for this chunk
         pipeline_messages = full_data_pipeline(
         
             current_start.isoformat(),
             current_end.isoformat(),
-            f"chunk_{chunk_id}"
+            f"trainstats_chunk_{chunk_id}"
         )
         
         # Send pipeline
         # for message in pipeline_messages:
         #     message.send()
         
-        
         pipelines.append(pipeline(pipeline_messages).run())
         current_start = current_end + timedelta(days=1)
     
-    logger.info(f"📊 Scheduled {len(pipelines)} pipelines with {chunk_id} chunks")
+    logger.info(f"Scheduled {len(pipelines)} TrainStats pipelines with {chunk_id} chunks")
     
     return {
         'pipelines': len(pipelines),
@@ -51,12 +50,13 @@ def start_pipeline(start_date: datetime, end_date: datetime):
 if __name__ == "__main__":
     try:
         setup_logging()
-        logger.info("Starting Railway Data Pipeline Scheduler (Dramatiq)")
+        logger.info("Starting Historical Data Collection Scheduler")
 
         days_back = int(os.getenv('COLLECTION_DAYS', '30'))
 
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days_back)
+        today = datetime.now().date()
+        end_date = datetime.combine(today - timedelta(days=1), datetime.min.time())
+        start_date = end_date - timedelta(days=days_back - 1)
         
         logger.info(f"Collection period: {days_back} days")
         logger.info(f"Date range: {start_date.date()} to {end_date.date()}")

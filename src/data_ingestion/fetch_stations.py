@@ -13,8 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from database.db_manager import DatabaseManager
 
-class LombardiaStationsFetcher:
-    """Fetches and stores Lombardia train stations"""
+class StationsFetcher:
     
     def __init__(self):
         self.api_url = "http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/elencoStazioni/1"
@@ -137,7 +136,7 @@ class LombardiaStationsFetcher:
 
 def main():
     try:
-        fetcher = LombardiaStationsFetcher()
+        fetcher = StationsFetcher()
         success = fetcher.run()
         
         if success:

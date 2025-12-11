@@ -24,10 +24,11 @@ def cleanup_old_processed_messages(hours_old: int = 1):
         
         cutoff_time = datetime.utcnow() - timedelta(hours=hours_old)
         
+        # Clean up old processed messages and expired results from queue table
         cursor.execute("""
             DELETE FROM dramatiq.queue 
-            WHERE created_at < %s 
-            AND state IN ('done')
+            WHERE (mtime < %s AND state IN ('done')) 
+            OR (result_ttl IS NOT NULL AND result_ttl < NOW())
         """, (cutoff_time,))
 
         # left rejected and failed messages in case of debugging
@@ -35,22 +36,12 @@ def cleanup_old_processed_messages(hours_old: int = 1):
         deleted_count = cursor.rowcount
         conn.commit()
         
-        print(f"Cleaned up {deleted_count} old messages from dramatiq.queue")
-        
-        cursor.execute("""
-            DELETE FROM dramatiq.results 
-            WHERE created_at < %s OR ttl < NOW()
-        """, (cutoff_time,))
-        
-        deleted_results = cursor.rowcount
-        conn.commit()
-        
-        print(f"Cleaned up {deleted_results} old results from dramatiq.results")
+        print(f"Cleaned up {deleted_count} old messages and expired results from dramatiq.queue")
         
         cursor.close()
         conn.close()
         
-        return {"deleted_messages": deleted_count, "deleted_results": deleted_results}
+        return {"deleted_messages": deleted_count}
         
     except Exception as e:
         print(f"Error cleaning up messages: {e}")

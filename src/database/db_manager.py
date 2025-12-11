@@ -1,7 +1,3 @@
-"""
-Database manager for PostgreSQL operations
-"""
-
 import pandas as pd
 import psycopg2
 from sqlalchemy import create_engine, text
@@ -83,8 +79,29 @@ class DatabaseManager:
             
             for i in range(0, total_records, batch_size):
                 batch = df_clean.iloc[i:i+batch_size]
-                batch.to_sql(
-                    'train_data', 
+                # Map columns to match database schema
+                schema_columns = {
+                    'train_id': 'train_id',
+                    'timestamp': 'timestamp', 
+                    'station_code': 'station_code',
+                    'scheduled_time': 'scheduled_time',
+                    'actual_time': 'actual_time',
+                    'delay_minutes': 'delay_minutes',
+                    'train_category': 'train_category',
+                    'route': 'route',
+                    'delay_status': 'delay_status',
+                    'destination': 'destination',
+                    'is_cancelled': 'is_cancelled'
+                }
+                
+                # Select only columns that exist in the schema
+                batch_mapped = batch.copy()
+                for col in list(batch_mapped.columns):
+                    if col not in schema_columns:
+                        batch_mapped = batch_mapped.drop(columns=[col])
+                
+                batch_mapped.to_sql(
+                    'trains',  # Correct table name
                     self.engine, 
                     if_exists='append', 
                     index=False,
