@@ -74,20 +74,21 @@ services:
         condition: service_completed_successfully
     command: ["python", "src/scheduler.py"]
 
-  cleanup-scheduler:
-    build: .
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=railway_analysis
-      - POSTGRES_USER=railway_user
-      - POSTGRES_PASSWORD=railway_pass
-    depends_on:
-      postgres:
-        condition: service_healthy
-      dramatiq-worker:
-        condition: service_started
-    command: ["python", "src/cleanup_scheduler.py"]
-    restart: unless-stopped
+  # closing for now, can be enabled later if needed
+  # cleanup-scheduler:
+  #   build: .
+  #   environment:
+  #     - POSTGRES_HOST=postgres
+  #     - POSTGRES_DB=railway_analysis
+  #     - POSTGRES_USER=railway_user
+  #     - POSTGRES_PASSWORD=railway_pass
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     dramatiq-worker:
+  #       condition: service_started
+  #   command: ["python", "src/cleanup_scheduler.py"]
+  #   restart: unless-stopped
     
 volumes:
   postgres_data:

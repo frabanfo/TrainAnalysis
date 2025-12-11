@@ -1,32 +1,23 @@
 -- Create Dramatiq schema and tables
 CREATE SCHEMA IF NOT EXISTS dramatiq;
 
--- Dramatiq queue table with correct schema
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'state' AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'dramatiq')) THEN
+        CREATE TYPE dramatiq.state AS ENUM ('queued','consumed','rejected','done');
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS dramatiq.queue (
-    id BIGSERIAL PRIMARY KEY,
-    queue_name TEXT NOT NULL,
-    message_id TEXT NOT NULL UNIQUE,
-    state TEXT NOT NULL DEFAULT 'queued',
-    message JSONB NOT NULL,
-    priority INTEGER NOT NULL DEFAULT 0,
-    mtime TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    message_id UUID PRIMARY KEY,
+    queue_name TEXT NOT NULL DEFAULT 'default',
+    state dramatiq.state,
+    mtime TIMESTAMP WITH TIME ZONE DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    message JSONB,
+    result JSONB,
+    result_ttl TIMESTAMP WITH TIME ZONE
 );
-
--- Dramatiq results table
-CREATE TABLE IF NOT EXISTS dramatiq.results (
-    message_id TEXT PRIMARY KEY,
-    result BYTEA,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    ttl TIMESTAMP WITH TIME ZONE
-);
-
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_dramatiq_queue_state ON dramatiq.queue(state);
-CREATE INDEX IF NOT EXISTS idx_dramatiq_queue_priority ON dramatiq.queue(priority DESC, created_at ASC);
-CREATE INDEX IF NOT EXISTS idx_dramatiq_queue_name ON dramatiq.queue(queue_name);
-CREATE INDEX IF NOT EXISTS idx_dramatiq_queue_mtime ON dramatiq.queue(mtime);
-CREATE INDEX IF NOT EXISTS idx_dramatiq_results_ttl ON dramatiq.results(ttl);
+CREATE INDEX IF NOT EXISTS idx_dramatiq_queue_state_mtime ON dramatiq.queue(state, mtime);
 
 -- Application tables
 CREATE TABLE IF NOT EXISTS stations (
