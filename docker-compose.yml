@@ -77,25 +77,6 @@ services:
         condition: service_completed_successfully
     command: ["python", "src/scheduler.py"]
 
-  integration-manager:
-    build: .
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=railway_analysis
-      - POSTGRES_USER=railway_user
-      - POSTGRES_PASSWORD=railway_pass
-    volumes:
-      - ./logs:/app/logs
-      - ./data:/app/data
-    depends_on:
-      postgres:
-        condition: service_healthy
-      dramatiq-worker:
-        condition: service_started
-    # Keep container running for manual integration commands
-    command: ["tail", "-f", "/dev/null"]
-    restart: unless-stopped
-
   # closing for now, can be enabled later if needed
   # cleanup-scheduler:
   #   build: .
