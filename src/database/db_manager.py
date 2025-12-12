@@ -146,8 +146,12 @@ class DatabaseManager:
             db_columns = [col for col in column_mapping.keys() if col in df_clean.columns]
             df_clean = df_clean[db_columns].rename(columns=column_mapping)
             
-            # Convert timestamp to proper format
-            df_clean['timestamp'] = pd.to_datetime(df_clean['timestamp'])
+            # Convert timestamp to proper format - handle the specific format from CSV files
+            # Use errors='coerce' to handle any parsing issues and then drop invalid rows
+            df_clean['timestamp'] = pd.to_datetime(df_clean['timestamp'], format='%Y-%m-%dT%H:%M', errors='coerce')
+            
+            # Remove any rows where timestamp parsing failed (like header rows)
+            df_clean = df_clean.dropna(subset=['timestamp'])
             
             # Insert data in batches with duplicate handling
             batch_size = 100

@@ -41,8 +41,7 @@ def start_pipeline(start_date: datetime, end_date: datetime):
         
         current_start = current_end + timedelta(days=1)
     
-    logger.info(f"📊 Scheduled {len(pipelines)} pipelines with {chunk_id} chunks")
-        current_start = current_end + timedelta(days=1)
+    logger.info(f"Scheduled {len(pipelines)} pipelines with {chunk_id} chunks")
     
     return {
         'pipelines': len(pipelines),

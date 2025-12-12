@@ -10,14 +10,13 @@ from data_ingestion.openmeteo_client import OpenMeteoClient
 from .dramatiq_config import WEATHER_QUEUE
 
 
-@dramatiq.actor(queue_name=WEATHER_QUEUE, max_retries=3, min_backoff=30000, max_backoff=300000)
+@dramatiq.actor(queue_name=WEATHER_QUEUE, max_retries=3, min_backoff=30000, max_backoff=300000, store_results=True)
 def collect_weather_data(start_date: str, end_date: str, chunk_id: str = None) -> Dict[str, Any]:
     """
     Task Dramatiq per raccogliere dati meteo per tutte le stazioni in un range di date.
-    Segue il pattern della train_task con controllo DB e storage.
     """
     try:
-        logger.info(f"Starting weather data collection: {start_date} to {end_date}")
+        logger.info(f"Starting weather data collection: {start_date} to {end_date} (chunk_id: {chunk_id})")
         
         client = OpenMeteoClient()
         db_manager = DatabaseManager()
@@ -31,7 +30,7 @@ def collect_weather_data(start_date: str, end_date: str, chunk_id: str = None) -
         )
         
         if stations_df.empty:
-            logger.warning("No stations found in database")
+            logger.error("No stations found in database")
             return {
                 'task_type': 'weather_collection',
                 'chunk_id': chunk_id,
@@ -41,6 +40,8 @@ def collect_weather_data(start_date: str, end_date: str, chunk_id: str = None) -
                 'error': 'No stations found'
             }
         
+        logger.info(f"Found {len(stations_df)} stations")
+        
         total_records = 0
         failed_dates = []
         current_date = start_dt
@@ -48,6 +49,7 @@ def collect_weather_data(start_date: str, end_date: str, chunk_id: str = None) -
         while current_date <= end_dt:
             try:
                 date_str = current_date.date().isoformat()
+                logger.info(f"Processing date: {date_str}")
                 
                 # Check if weather data for this date already exists
                 existing_check = db_manager.execute_query(
@@ -72,29 +74,32 @@ def collect_weather_data(start_date: str, end_date: str, chunk_id: str = None) -
                             "lon": float(station['longitude'])
                         }
                         
-                        # Fetch weather data for this station and date
-                        records = client.fetch_station_chunk(
-                            station=station_dict,
-                            chunk_start=current_date.date(),
-                            chunk_end=current_date.date(),
-                            base_dir="data",
-                            save_raw=False
+                        # First check if CSV file already exists
+                        year = current_date.year
+                        csv_path = os.path.join(
+                            "data", "curated", "openmeteo", station['station_code'], 
+                            str(year), f"weather_{station['station_code']}_{current_date.date()}_{current_date.date()}.csv"
                         )
                         
-                        if records > 0:
-                            # Read the generated CSV to get the actual data
-                            year = current_date.year
-                            csv_path = os.path.join(
-                                "data", "curated", "openmeteo", station['station_code'], 
-                                str(year), f"weather_{station['station_code']}_{current_date.date()}_{current_date.date()}.csv"
+                        # If file doesn't exist, fetch it
+                        if not os.path.exists(csv_path):
+                            records = client.fetch_station_chunk(
+                                station=station_dict,
+                                chunk_start=current_date.date(),
+                                chunk_end=current_date.date(),
+                                base_dir="data",
+                                save_raw=False
                             )
-                            
-                            if os.path.exists(csv_path):
-                                station_df = pd.read_csv(csv_path)
-                                daily_weather_records.append(station_df)
+                        
+                        # Always try to read the CSV file (whether it was just created or already existed)
+                        if os.path.exists(csv_path):
+                            station_df = pd.read_csv(csv_path)
+                            daily_weather_records.append(station_df)
+                        else:
+                            logger.warning(f"CSV file not found after fetch: {csv_path}")
                                 
                     except Exception as e:
-                        logger.error(f"Error fetching weather for station {station['station_code']} on {date_str}: {e}")
+                        logger.error(f"Error processing weather for station {station['station_code']} on {date_str}: {e}")
                         continue
                 
                 # Store all weather data for this date
@@ -104,8 +109,9 @@ def collect_weather_data(start_date: str, end_date: str, chunk_id: str = None) -
                     success = db_manager.store_weather_data(combined_df)
                     if success:
                         total_records += len(combined_df)
-                        logger.info(f"Stored {len(combined_df)} weather records for {date_str}")
+                        logger.info(f"Successfully stored {len(combined_df)} weather records for {date_str}")
                     else:
+                        logger.error(f"Failed to store weather data for {date_str}")
                         failed_dates.append(date_str)
                 else:
                     logger.warning(f"No weather data collected for {date_str}")
