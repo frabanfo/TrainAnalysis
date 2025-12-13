@@ -10,6 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: postgres -c max_connections=200 -c shared_buffers=256MB
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U railway_user -d railway_analysis"]
       interval: 10s
@@ -50,10 +51,10 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data  # Mount data directory for raw JSON backups
     command: >
-      dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.processing_tasks
+      dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.integration_tasks
+      --queues train_queue weather_queue processing_queue default
       --processes 2
       --threads 4
-      --queues train_queue weather_queue processing_queue default
       --verbose
     restart: unless-stopped
 
