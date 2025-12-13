@@ -1,4 +1,0 @@
-# Testing dependencies for data quality system
-hypothesis>=6.0.0
-pytest>=7.0.0
-pytest-cov>=4.0.0
