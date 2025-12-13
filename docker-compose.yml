@@ -50,10 +50,10 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data  # Mount data directory for raw JSON backups
     command: >
-      dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.processing_tasks
+      dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks
       --processes 2
       --threads 4
-      --queues train_queue weather_queue processing_queue default
+      --queues train_queue weather_queue default
       --verbose
     restart: unless-stopped
 
@@ -64,7 +64,7 @@ services:
       - POSTGRES_DB=railway_analysis
       - POSTGRES_USER=railway_user
       - POSTGRES_PASSWORD=railway_pass
-      - COLLECTION_DAYS=30  # Collect 30 days of historical data (yesterday to -30 days)
+      - COLLECTION_DAYS=2  # Collect 2 days of historical data for testing
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data  # Mount data directory for raw JSON backups
