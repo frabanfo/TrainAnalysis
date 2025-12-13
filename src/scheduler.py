@@ -23,7 +23,7 @@ def setup_logging():
 
 def start_pipeline(start_date: datetime, end_date: datetime, enable_dq: bool = True):
     """Start the data collection pipeline."""
-    chunk_size_days = 5
+    chunk_size_days = int(os.getenv('CHUNK_SIZE', '5'))
     current_start = start_date
     pipelines = []
     chunk_id = 0
