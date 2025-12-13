@@ -73,12 +73,19 @@ class FeatureEngineer:
             ] = True
         
         # Time period categories
-        df['time_period'] = pd.cut(
-            df['hour_of_day'],
-            bins=[0, 6, 12, 18, 24],
-            labels=['Night', 'Morning', 'Afternoon', 'Evening'],
-            include_lowest=True
-        )
+        if df['hour_of_day'].nunique() > 1:
+            try:
+                df['time_period'] = pd.cut(
+                    df['hour_of_day'],
+                    bins=[0, 6, 12, 18, 24],
+                    labels=['Night', 'Morning', 'Afternoon', 'Evening'],
+                    include_lowest=True
+                )
+            except ValueError as e:
+                logger.warning(f"Could not create time period categories: {e}")
+                df['time_period'] = 'Unknown'
+        else:
+            df['time_period'] = 'Unknown'
         
         # Season (Northern Hemisphere)
         df['season'] = df['month'].map({
@@ -95,12 +102,16 @@ class FeatureEngineer:
         logger.debug("Adding weather features")
         
         # Temperature categories
-        if 'temperature' in df.columns:
-            df['temp_category'] = pd.cut(
-                df['temperature'],
-                bins=[-np.inf, 0, 10, 20, 30, np.inf],
-                labels=['Freezing', 'Cold', 'Cool', 'Warm', 'Hot']
-            )
+        if 'temperature' in df.columns and df['temperature'].notna().nunique() > 1:
+            try:
+                df['temp_category'] = pd.cut(
+                    df['temperature'],
+                    bins=[-np.inf, 0, 10, 20, 30, np.inf],
+                    labels=['Freezing', 'Cold', 'Cool', 'Warm', 'Hot']
+                )
+            except ValueError as e:
+                logger.warning(f"Could not create temperature categories: {e}")
+                df['temp_category'] = 'Unknown'
             
             # Temperature extremes
             df['is_extreme_cold'] = df['temperature'] < -10
@@ -112,24 +123,40 @@ class FeatureEngineer:
             df['is_raining'] = df['precip_mm'] > 0
             
             # Rain intensity categories
-            df['rain_intensity'] = pd.cut(
-                df['precip_mm'].fillna(0),
-                bins=[0, 0.1, 2.5, 10, 50, np.inf],
-                labels=['None', 'Light', 'Moderate', 'Heavy', 'Extreme'],
-                include_lowest=True
-            )
+            precip_values = df['precip_mm'].fillna(0)
+            if precip_values.nunique() > 1:
+                try:
+                    df['rain_intensity'] = pd.cut(
+                        precip_values,
+                        bins=[0, 0.1, 2.5, 10, 50, np.inf],
+                        labels=['None', 'Light', 'Moderate', 'Heavy', 'Extreme'],
+                        include_lowest=True
+                    )
+                except ValueError as e:
+                    logger.warning(f"Could not create rain intensity categories: {e}")
+                    df['rain_intensity'] = 'None'
+            else:
+                df['rain_intensity'] = 'None'
             
             # Heavy rain indicator
             df['is_heavy_rain'] = df['precip_mm'] > 10
         
         # Wind features
         if 'wind_speed' in df.columns:
-            df['wind_category'] = pd.cut(
-                df['wind_speed'].fillna(0),
-                bins=[0, 5, 15, 25, 35, np.inf],
-                labels=['Calm', 'Light', 'Moderate', 'Strong', 'Severe'],
-                include_lowest=True
-            )
+            wind_values = df['wind_speed'].fillna(0)
+            if wind_values.nunique() > 1:
+                try:
+                    df['wind_category'] = pd.cut(
+                        wind_values,
+                        bins=[0, 5, 15, 25, 35, np.inf],
+                        labels=['Calm', 'Light', 'Moderate', 'Strong', 'Severe'],
+                        include_lowest=True
+                    )
+                except ValueError as e:
+                    logger.warning(f"Could not create wind categories: {e}")
+                    df['wind_category'] = 'Calm'
+            else:
+                df['wind_category'] = 'Calm'
             
             # High wind indicator
             df['is_high_wind'] = df['wind_speed'] > 25
@@ -180,11 +207,19 @@ class FeatureEngineer:
         
         if 'delay_minutes' in df.columns:
             # Delay categories
-            df['delay_category'] = pd.cut(
-                df['delay_minutes'].fillna(0),
-                bins=[-np.inf, -5, 5, 15, 30, 60, np.inf],
-                labels=['Early', 'On_Time', 'Minor_Delay', 'Moderate_Delay', 'Major_Delay', 'Severe_Delay']
-            )
+            delay_values = df['delay_minutes'].fillna(0)
+            if delay_values.nunique() > 1:
+                try:
+                    df['delay_category'] = pd.cut(
+                        delay_values,
+                        bins=[-np.inf, -5, 5, 15, 30, 60, np.inf],
+                        labels=['Early', 'On_Time', 'Minor_Delay', 'Moderate_Delay', 'Major_Delay', 'Severe_Delay']
+                    )
+                except ValueError as e:
+                    logger.warning(f"Could not create delay categories: {e}")
+                    df['delay_category'] = 'On_Time'
+            else:
+                df['delay_category'] = 'On_Time'
             
             # Binary delay indicators
             df['is_delayed'] = df['delay_minutes'] > 5
@@ -234,12 +269,19 @@ class FeatureEngineer:
             df['station_traffic_rank'] = df['station_code'].map(station_counts)
             
             # Categorize stations by traffic
-            traffic_quantiles = station_counts.quantile([0.33, 0.67])
-            df['station_importance'] = pd.cut(
-                df['station_traffic_rank'],
-                bins=[0, traffic_quantiles.iloc[0], traffic_quantiles.iloc[1], np.inf],
-                labels=['Low_Traffic', 'Medium_Traffic', 'High_Traffic']
-            )
+            if station_counts.nunique() > 1:
+                try:
+                    traffic_quantiles = station_counts.quantile([0.33, 0.67])
+                    df['station_importance'] = pd.cut(
+                        df['station_traffic_rank'],
+                        bins=[0, traffic_quantiles.iloc[0], traffic_quantiles.iloc[1], np.inf],
+                        labels=['Low_Traffic', 'Medium_Traffic', 'High_Traffic']
+                    )
+                except ValueError as e:
+                    logger.warning(f"Could not create station importance categories: {e}")
+                    df['station_importance'] = 'Medium_Traffic'
+            else:
+                df['station_importance'] = 'Medium_Traffic'
         
         # Route complexity (simple heuristic based on route string length)
         if 'route' in df.columns:

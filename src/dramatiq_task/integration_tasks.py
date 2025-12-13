@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from loguru import logger
 
 from .dramatiq_config import PROCESSING_QUEUE
-from data_integration import TrainWeatherIntegrator
+from src.data_integration import TrainWeatherIntegrator
 
 
 @dramatiq.actor(queue_name=PROCESSING_QUEUE, max_retries=3, min_backoff=30000, max_backoff=300000, store_results=True)

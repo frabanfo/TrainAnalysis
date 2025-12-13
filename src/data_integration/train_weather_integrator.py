@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from loguru import logger
 
-from database.db_manager import DatabaseManager
+from ..database.db_manager import DatabaseManager
+from .feature_engineer import FeatureEngineer
 
 
 class TrainWeatherIntegrator:
@@ -66,6 +67,16 @@ class TrainWeatherIntegrator:
             
             integration_duration = (datetime.now() - start_time).total_seconds()
             
+            # Calculate match rate from integration results
+            match_rate = 0.0
+            quality_score = 1.0
+            
+            if not integrated_data.empty:
+                # Count records with weather data
+                weather_matched = integrated_data['temperature'].notna().sum()
+                match_rate = weather_matched / len(integrated_data) if len(integrated_data) > 0 else 0.0
+                quality_score = min(match_rate + 0.2, 1.0)  # Base quality score on match rate
+            
             return {
                 'integration_id': integration_id,
                 'success': True,
@@ -77,6 +88,8 @@ class TrainWeatherIntegrator:
                 },
                 'integrated_data': {
                     'total_records': len(integrated_data),
+                    'match_rate': match_rate,
+                    'quality_score': quality_score
                 },
                 'performance': {
                     'duration_seconds': integration_duration,
@@ -108,7 +121,7 @@ class TrainWeatherIntegrator:
             train_id, timestamp, station_code, scheduled_time, actual_time,
             delay_minutes, train_category, route, delay_status, destination, is_cancelled
         FROM trains 
-        WHERE timestamp >= :start_date AND timestamp <= :end_date
+        WHERE DATE(timestamp) >= DATE(:start_date) AND DATE(timestamp) <= DATE(:end_date)
         ORDER BY timestamp, station_code
         """
         
@@ -116,7 +129,7 @@ class TrainWeatherIntegrator:
         SELECT 
             station_code, timestamp, temperature, wind_speed, precip_mm, weather_code
         FROM weather 
-        WHERE timestamp >= :start_date AND timestamp <= :end_date
+        WHERE DATE(timestamp) >= DATE(:start_date) AND DATE(timestamp) <= DATE(:end_date)
         ORDER BY timestamp, station_code
         """
         
@@ -283,12 +296,29 @@ class TrainWeatherIntegrator:
         try:
             logger.info(f"Storing {len(integrated_data)} integrated records")
             
-            batch_size = self.config['batch_size']
+            # Get the expected columns from the database table
+            expected_columns = [
+                'train_id', 'timestamp', 'station_code', 'delay_minutes', 'temperature',
+                'wind_speed', 'precip_mm', 'weather_code', 'train_category', 'route',
+                'delay_status', 'destination', 'is_cancelled', 'hour_of_day', 'day_of_week',
+                'is_weekend', 'is_rush_hour', 'temp_category', 'is_raining', 'rain_intensity',
+                'wind_category', 'is_delayed', 'delay_category'
+            ]
+            
+            # Filter the dataframe to only include columns that exist in the database
+            available_columns = [col for col in expected_columns if col in integrated_data.columns]
+            filtered_data = integrated_data[available_columns].copy()
+            
+            logger.info(f"Storing {len(available_columns)} columns: {available_columns}")
+            
+            # Use smaller batch size for database insertion to avoid SQL query limits
+            db_batch_size = 100  # Smaller batch size for database operations
             total_stored = 0
             
-            for i in range(0, len(integrated_data), batch_size):
-                batch = integrated_data.iloc[i:i+batch_size]
+            for i in range(0, len(filtered_data), db_batch_size):
+                batch = filtered_data.iloc[i:i+db_batch_size]
                 
+                # Use 'multi' method but with smaller batches
                 batch.to_sql(
                     'train_weather_integrated',
                     self.db_manager.engine,
@@ -297,6 +327,9 @@ class TrainWeatherIntegrator:
                     method='multi'
                 )
                 total_stored += len(batch)
+                
+                if i % (db_batch_size * 10) == 0:  # Log progress every 1000 records
+                    logger.info(f"Stored {total_stored}/{len(filtered_data)} records")
             
             logger.info(f"Successfully stored {total_stored} integrated records")
             
@@ -304,6 +337,8 @@ class TrainWeatherIntegrator:
             
         except Exception as e:
             logger.error(f"Failed to store integrated data: {str(e)}")
+            logger.error(f"Data shape: {integrated_data.shape}")
+            logger.error(f"Columns: {list(integrated_data.columns)}")
             return False
     
 
