@@ -1,7 +1,3 @@
-"""
-Scheduler with Data Quality integration.
-"""
-
 import os
 import sys
 from datetime import datetime, timedelta
@@ -13,16 +9,14 @@ parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from src.dramatiq_task.dramatiq_tasks import full_data_pipeline, full_data_pipeline_with_dq
+from src.dramatiq_task.dramatiq_tasks import full_data_pipeline
 
 def setup_logging():
-    """Setup logging for the scheduler."""
     log_file = f"logs/scheduler_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
     logger.add(log_file, rotation="1 day", retention="30 days")
     logger.info("Dramatiq Scheduler started")
 
 def start_pipeline(start_date: datetime, end_date: datetime, enable_dq: bool = True):
-    """Start the data collection pipeline."""
     chunk_size_days = int(os.getenv('CHUNK_SIZE', '5'))
     current_start = start_date
     pipelines = []
@@ -35,14 +29,7 @@ def start_pipeline(start_date: datetime, end_date: datetime, enable_dq: bool = T
         logger.info(f"Scheduling pipeline chunk {chunk_id}: {current_start.date()} to {current_end.date()}")
         
         try:
-            if enable_dq:
-                pipeline_results = full_data_pipeline_with_dq(
-                    current_start.isoformat(),
-                    current_end.isoformat(),
-                    f"dq_chunk_{chunk_id}"
-                )
-            else:
-                pipeline_results = full_data_pipeline(
+            pipeline_results = full_data_pipeline(
                     current_start.isoformat(),
                     current_end.isoformat(),
                     f"chunk_{chunk_id}"
@@ -67,14 +54,12 @@ def start_pipeline(start_date: datetime, end_date: datetime, enable_dq: bool = T
 
 
 def main():
-    """Main scheduler function."""
     try:
         # Get configuration
-        enable_dq = os.getenv('ENABLE_DQ', 'true').lower() == 'true'
         days_back = int(os.getenv('COLLECTION_DAYS', '7'))
         
         setup_logging()
-        logger.info(f"Starting Data Collection Scheduler (DQ: {enable_dq})")
+        logger.info(f"Starting Data Collection Scheduler for last {days_back} days")
         
         # Calculate date range
         today = datetime.now().date()
@@ -84,7 +69,7 @@ def main():
         logger.info(f"Date range: {start_date.date()} to {end_date.date()}")
         
         # Start the pipeline
-        result = start_pipeline(start_date, end_date, enable_dq)
+        result = start_pipeline(start_date, end_date)
         
         logger.info(f"Scheduling complete: {result}")
         logger.info("Start workers: dramatiq src.dramatiq_task.dramatiq_config")

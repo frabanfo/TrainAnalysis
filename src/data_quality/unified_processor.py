@@ -402,7 +402,7 @@ class UnifiedDataQualityProcessor(BaseDataQualityProcessor):
         precip_fields = ['precipitation', 'precip_mm']
         for field in precip_fields:
             if field in df_clean.columns:
-                negative_precip_mask = df_clean[field] < self.weather_config.precipitation_min
+                negative_precip_mask = df_clean[field] < self.weather_config.precip_mm_min
                 negative_precip_count = negative_precip_mask.sum()
                 
                 if negative_precip_count > 0:

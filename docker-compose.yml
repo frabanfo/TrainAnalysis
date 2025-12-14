@@ -65,9 +65,8 @@ services:
       - POSTGRES_DB=railway_analysis
       - POSTGRES_USER=railway_user
       - POSTGRES_PASSWORD=railway_pass
-      - COLLECTION_DAYS=2  # Collect 2 days of historical data for testing
-      - CHUNK_SIZE=1       # Process 1 day per chunk for better granularity
-      - ENABLE_DQ=true     # Enable Data Quality validation
+      - COLLECTION_DAYS=30
+      - CHUNK_SIZE=1  
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data  # Mount data directory for raw JSON backups

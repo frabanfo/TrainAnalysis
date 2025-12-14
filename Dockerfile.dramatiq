@@ -9,4 +9,6 @@ WORKDIR /app
 COPY requirements-dramatiq.txt .
 RUN pip install --no-cache-dir -r requirements-dramatiq.txt
 
-ENV PYTHONPATH=/app/src
+RUN mkdir -p logs
+
+ENV PYTHONPATH=/app

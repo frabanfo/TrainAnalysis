@@ -5,12 +5,16 @@ from loguru import logger
 
 from .dramatiq_config import PROCESSING_QUEUE
 from src.data_integration import TrainWeatherIntegrator
+from .logging_config import setup_task_logging
 
 
 @dramatiq.actor(queue_name=PROCESSING_QUEUE, max_retries=3, min_backoff=30000, max_backoff=300000, store_results=True)
 def integrate_train_weather_data(start_date: str, end_date: str, integration_id: str = None) -> Dict[str, Any]:
+    log_file = setup_task_logging("integration", integration_id)
+    
     try:
-        logger.info(f"Starting train-weather integration task: {start_date} to {end_date}")
+        logger.info(f"Starting train-weather integration task: {start_date} to {end_date} (integration_id: {integration_id})")
+        logger.info(f"Task logs saved to: {log_file}")
         
         integrator = TrainWeatherIntegrator()
         
@@ -25,15 +29,15 @@ def integrate_train_weather_data(start_date: str, end_date: str, integration_id:
                 'integration_id': integration_id,
                 'start_date': start_date,
                 'end_date': end_date,
-                'total_records': integration_result['integrated_data']['total_records'],
+                'total_records': int(integration_result['integrated_data']['total_records']),
                 'source_records': {
-                    'train_count': integration_result['source_data']['train_records'],
-                    'weather_count': integration_result['source_data']['weather_records']
+                    'train_count': int(integration_result['source_data']['train_records']),
+                    'weather_count': int(integration_result['source_data']['weather_records'])
                 },
-                'match_rate': integration_result['integrated_data']['match_rate'],
-                'quality_score': integration_result['integrated_data']['quality_score'],
-                'duration_seconds': integration_result['performance']['duration_seconds'],
-                'records_per_second': integration_result['performance']['records_per_second'],
+                'match_rate': float(integration_result['integrated_data']['match_rate']),
+                'quality_score': float(integration_result['integrated_data']['quality_score']),
+                'duration_seconds': float(integration_result['performance']['duration_seconds']),
+                'records_per_second': float(integration_result['performance']['records_per_second']),
                 'storage_success': integration_result['storage_success'],
                 'failed_dates': [],
                 'success': True,
@@ -50,8 +54,8 @@ def integrate_train_weather_data(start_date: str, end_date: str, integration_id:
                 'source_records': {'train_count': 0, 'weather_count': 0},
                 'match_rate': 0.0,
                 'quality_score': 0.0,
-                'duration_seconds': integration_result.get('performance', {}).get('duration_seconds', 0),
-                'records_per_second': 0,
+                'duration_seconds': float(integration_result.get('performance', {}).get('duration_seconds', 0)),
+                'records_per_second': 0.0,
                 'storage_success': False,
                 'failed_dates': [start_date],
                 'success': False,
@@ -73,8 +77,8 @@ def integrate_train_weather_data(start_date: str, end_date: str, integration_id:
             'source_records': {'train_count': 0, 'weather_count': 0},
             'match_rate': 0.0,
             'quality_score': 0.0,
-            'duration_seconds': 0,
-            'records_per_second': 0,
+            'duration_seconds': 0.0,
+            'records_per_second': 0.0,
             'storage_success': False,
             'failed_dates': [start_date],
             'success': False,
