@@ -1,18 +1,22 @@
 import os
 import sys
-import time
 from datetime import datetime, timedelta
 from loguru import logger
-from dramatiq import pipeline
-from dramatiq_task.dramatiq_tasks import full_data_pipeline
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add current directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+from src.dramatiq_task.dramatiq_tasks import full_data_pipeline
 
 def setup_logging():
-    logger.add("logs/scheduler_{time}.log", rotation="1 day", retention="30 days")
+    log_file = f"logs/scheduler_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
+    logger.add(log_file, rotation="1 day", retention="30 days")
     logger.info("Dramatiq Scheduler started")
 
-def start_pipeline(start_date: datetime, end_date: datetime):
+def start_pipeline(start_date: datetime, end_date: datetime, enable_dq: bool = True):
     chunk_size_days = int(os.getenv('CHUNK_SIZE', '5'))
     current_start = start_date
     pipelines = []
@@ -24,52 +28,68 @@ def start_pipeline(start_date: datetime, end_date: datetime):
         
         logger.info(f"Scheduling pipeline chunk {chunk_id}: {current_start.date()} to {current_end.date()}")
         
-        # Get pipeline items for this chunk
-        pipeline_items = full_data_pipeline(
-            current_start.isoformat(),
-            current_end.isoformat(),
-            f"trainstats_chunk_{chunk_id}"
-        )
+        try:
+            pipeline_results = full_data_pipeline(
+                    current_start.isoformat(),
+                    current_end.isoformat(),
+                    f"chunk_{chunk_id}"
+                )
+            
+            logger.info(f"Pipeline chunk {chunk_id} scheduled successfully")
+            pipelines.append(pipeline_results)
+            
+        except Exception as e:
+            logger.error(f"Failed to create pipeline chunk {chunk_id}: {e}")
+            continue
         
-        results = []
-        for item in pipeline_items:
-            if hasattr(item, 'run'):
-                results.append(item.run())
-            else:
-                results.append(item.send())
-        
-        pipelines.append(results)
         current_start = current_end + timedelta(days=1)
-    
-    logger.info(f"Scheduled {len(pipelines)} TrainStats pipelines with {chunk_id} chunks")
     
     return {
         'pipelines': len(pipelines),
-        'chunks': chunk_id
+        'chunks': chunk_id,
+        'total_tasks': sum(len(p) for p in pipelines),
+        'dq_enabled': enable_dq
     }
 
 
-if __name__ == "__main__":
+
+def main():
     try:
+        # Get configuration
+        days_back = int(os.getenv('COLLECTION_DAYS', '7'))
+        
         setup_logging()
-        logger.info("Starting Historical Data Collection Scheduler")
-
-        days_back = int(os.getenv('COLLECTION_DAYS', '30'))
-
+        logger.info(f"Starting Data Collection Scheduler for last {days_back} days")
+        
+        # Calculate date range
         today = datetime.now().date()
         end_date = datetime.combine(today - timedelta(days=1), datetime.min.time())
         start_date = end_date - timedelta(days=days_back - 1)
         
-        logger.info(f"Collection period: {days_back} days")
         logger.info(f"Date range: {start_date.date()} to {end_date.date()}")
         
+        # Start the pipeline
         result = start_pipeline(start_date, end_date)
-
-        logger.info(f"Scheduling result: {result}")
-        logger.info("Scheduler completed successfully")
+        
+        logger.info(f"Scheduling complete: {result}")
+        logger.info("Start workers: dramatiq src.dramatiq_task.dramatiq_config")
+        
+        return result
         
     except KeyboardInterrupt:
         logger.info("Scheduler interrupted by user")
+        return None
+        
     except Exception as e:
         logger.error(f"Scheduler failed: {str(e)}")
         raise
+
+if __name__ == "__main__":
+    try:
+        result = main()
+        if result:
+            print(f"Pipeline scheduled: {result['total_tasks']} tasks across {result['chunks']} chunks")
+        sys.exit(0 if result else 1)
+    except Exception as e:
+        print(f"Scheduler crashed: {e}")
+        sys.exit(1)
