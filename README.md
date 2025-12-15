@@ -154,12 +154,7 @@ The system runs the following services:
 - **railway-scheduler**: Main orchestration service
 
 #### Service Dependencies
-```
-postgres (healthy) ──┐
-                     ├─▶ stations-init ──┐
-redis (healthy) ─────┤                   ├─▶ railway-scheduler
-                     └─▶ dramatiq-worker ─┘
-```
+<img src="images/sys_inizialization.drawio.png" alt="Pipeline">
 
 ### Configuration Options
 
