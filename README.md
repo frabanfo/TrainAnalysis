@@ -8,15 +8,7 @@ A comprehensive data pipeline system for analyzing correlations between train de
 
 The TrainAnalysis system is built using a **microservices architecture** with **event-driven processing** using Dramatiq task queues. The system follows a **data lakehouse pattern** with structured data storage and comprehensive data quality management.
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Data Sources  │    │  Task Queues    │    │   Storage       │
-├─────────────────┤    ├─────────────────┤    ├─────────────────┤
-│ TrainStats API  │───▶│ Train Queue     │───▶│ PostgreSQL      │
-│ OpenMeteo API   │───▶│ Weather Queue   │───▶│ Raw Data Files  │
-│ Station Registry│───▶│ Processing Queue│───▶│ Quality Metrics │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+<img src="images/basic_flow.drawio.png" alt="Pipeline" style="width:80%;">
 
 ### Core Components
 
