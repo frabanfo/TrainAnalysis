@@ -51,15 +51,8 @@ The TrainAnalysis system is built using a **microservices architecture** with **
 
 ## Data Flow Pipeline
 
-### Phase 1: òata Collection
-```
-Scheduler ──┐
-            ├─▶ Train Collection Task ──┐
-            └─▶ Weather Collection Task ─┤
-                                         ├─▶ Integration Task ──▶ Storage
-                                         │
-                                         └─▶ Data Quality Validation
-```
+### Phase 1: Data Collection
+<img src="images/Flow.drawio.png" alt="Pipeline" style="width:70%;">
 
 ### Phase 2: Processing Workflow
 
