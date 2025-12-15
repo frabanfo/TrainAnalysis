@@ -13,13 +13,13 @@ The TrainAnalysis system is built using a **microservices architecture** with **
 ### Core Components
 
 #### 1. **Data Ingestion Layer**
-- **TrainStats Client**: Collects real-time and archive train data from Italian railway APIs
+- **TrainStats Client**: Collects historical and current train data from trainstats APIs
 - **OpenMeteo Client**: Fetches historical and current weather data
 - **Station Registry**: Manages railway station metadata with coordinates
 
 #### 2. **Task Processing Layer (Dramatiq)**
 - **Train Tasks**: Parallel collection of railway data with retry mechanisms
-- **Weather Tasks**: Meteorological data collection with geographic matching
+- **Weather Tasks**: Parallel meteorological data collection with geographic matching
 - **Integration Tasks**: Temporal and spatial data fusion
 - **Scheduler**: Orchestrates data collection workflows
 
@@ -37,9 +37,9 @@ The TrainAnalysis system is built using a **microservices architecture** with **
 - **Quality Scoring**: Calculates integration success metrics
 
 #### 5. **Storage Layer**
-- **PostgreSQL**: Primary data warehouse with optimized schemas
+- **PostgreSQL**: Primary database and task queue broker with optimized schemas
 - **File System**: Raw data backup and intermediate processing files
-- **Redis**: Barrier backend and caching layer
+- **Redis**: Barrier backend storage
 
 ## Data Flow Pipeline
 
@@ -103,7 +103,6 @@ The system implements a comprehensive data quality framework:
 ### Prerequisites
 
 - **Docker & Docker Compose**: Container orchestration
-- **Git**: Version control
 - **8GB+ RAM**: For processing large datasets
 - **10GB+ Disk Space**: For data storage and logs
 
