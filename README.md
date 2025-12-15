@@ -8,7 +8,7 @@ A comprehensive data pipeline system for analyzing correlations between train de
 
 The TrainAnalysis system is built using a **microservices architecture** with **event-driven processing** using Dramatiq task queues. The system follows a **data lakehouse pattern** with structured data storage and comprehensive data quality management.
 
-<img src="images/basic_flow.drawio.png" alt="Pipeline" style="width:80%;">
+<img src="images/basic_flow.drawio.png" alt="Pipeline">
 
 ### Core Components
 
@@ -44,7 +44,7 @@ The TrainAnalysis system is built using a **microservices architecture** with **
 ## Data Flow Pipeline
 
 ### Phase 1: Data Collection
-<img src="images/Flow.drawio.png" alt="Pipeline" style="width:70%;">
+<img src="images/Flow.drawio.png" alt="Pipeline">
 
 ### Phase 2: Processing Workflow
 
