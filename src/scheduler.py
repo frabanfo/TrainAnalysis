@@ -19,7 +19,6 @@ def setup_logging():
 def start_pipeline(start_date: datetime, end_date: datetime, enable_dq: bool = True):
     chunk_size_days = int(os.getenv('CHUNK_SIZE', '5'))
     current_start = start_date
-    pipelines = []
     chunk_id = 0
     
     while current_start <= end_date:
@@ -29,14 +28,13 @@ def start_pipeline(start_date: datetime, end_date: datetime, enable_dq: bool = T
         logger.info(f"Scheduling pipeline chunk {chunk_id}: {current_start.date()} to {current_end.date()}")
         
         try:
-            pipeline_results = full_data_pipeline(
+            full_data_pipeline.send(
                     current_start.isoformat(),
                     current_end.isoformat(),
                     f"chunk_{chunk_id}"
                 )
             
             logger.info(f"Pipeline chunk {chunk_id} scheduled successfully")
-            pipelines.append(pipeline_results)
             
         except Exception as e:
             logger.error(f"Failed to create pipeline chunk {chunk_id}: {e}")
@@ -45,10 +43,7 @@ def start_pipeline(start_date: datetime, end_date: datetime, enable_dq: bool = T
         current_start = current_end + timedelta(days=1)
     
     return {
-        'pipelines': len(pipelines),
         'chunks': chunk_id,
-        'total_tasks': sum(len(p) for p in pipelines),
-        'dq_enabled': enable_dq
     }
 
 
@@ -87,8 +82,6 @@ def main():
 if __name__ == "__main__":
     try:
         result = main()
-        if result:
-            print(f"Pipeline scheduled: {result['total_tasks']} tasks across {result['chunks']} chunks")
         sys.exit(0 if result else 1)
     except Exception as e:
         print(f"Scheduler crashed: {e}")
