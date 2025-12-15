@@ -13,3 +13,4 @@ loguru==0.7.2
 dramatiq==1.15.0
 dramatiq-pg
 schedule==1.2.0 
+redis

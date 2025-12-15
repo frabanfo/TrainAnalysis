@@ -37,21 +37,21 @@ services:
       context: .
       dockerfile: Dockerfile.dramatiq
     depends_on:
-      postgres:
+      redis:
         condition: service_healthy
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=railway_analysis
       - POSTGRES_USER=railway_user
       - POSTGRES_PASSWORD=railway_pass
-      - POSTGRES_PORT=5432
+      - REDIS_URL=redis://redis:6379
     volumes:
       - ./src:/app/src
       - ./scripts:/app/scripts
       - ./logs:/app/logs
       - ./data:/app/data  # Mount data directory for raw JSON backups
     command: >
-      dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.integration_tasks
+      dramatiq src.dramatiq_task.train_tasks src.dramatiq_task.weather_tasks src.dramatiq_task.integration_tasks src.dramatiq_task.dramatiq_tasks
       --queues train_queue weather_queue processing_queue default
       --processes 2
       --threads 4
@@ -67,11 +67,14 @@ services:
       - POSTGRES_PASSWORD=railway_pass
       - COLLECTION_DAYS=30
       - CHUNK_SIZE=1  
+      - REDIS_URL=redis://redis:6379
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data  # Mount data directory for raw JSON backups
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       stations-init:
         condition: service_completed_successfully
@@ -92,6 +95,16 @@ services:
   #       condition: service_started
   #   command: ["python", "src/cleanup_scheduler.py"]
   #   restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     
 volumes:
   postgres_data:
