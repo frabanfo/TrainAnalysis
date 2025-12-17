@@ -159,7 +159,7 @@ class TrainStatsClient:
             
             return {
                 'train_id': num_treno,
-                'timestamp': scheduled_time if scheduled_time else datetime.now(),
+                'timestamp': scheduled_time if scheduled_time else date,
                 'station_code': station_code,
                 'scheduled_time': scheduled_time,
                 'actual_time': actual_time,
