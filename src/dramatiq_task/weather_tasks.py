@@ -99,7 +99,7 @@ def collect_weather_data(start_date: str, end_date: str, chunk_id: str = None) -
                                 chunk_start=current_date.date(),
                                 chunk_end=current_date.date(),
                                 base_dir="data",
-                                save_raw=False
+                                save_raw=True
                             )
                         
                         # Always try to read the CSV file (whether it was just created or already existed)
