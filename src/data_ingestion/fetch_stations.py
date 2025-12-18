@@ -5,6 +5,8 @@ Fetch train stations from Lombardia region using Viaggiatreno API
 import requests
 import pandas as pd
 from typing import List, Dict, Any
+from shapely import Point
+from italy_geopop.geopop import Geopop
 from loguru import logger
 import sys
 import os
@@ -17,6 +19,8 @@ class StationsFetcher:
     
     def __init__(self):
         self.api_url = "http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/elencoStazioni/1"
+        gp = Geopop()
+        self.lombardy_geom = gp.italy_regions_geometry.loc[3, "geometry"]  # Lombardia region code
         self.db_manager = DatabaseManager()
         
     def fetch_stations(self) -> List[Dict[str, Any]]:
@@ -48,7 +52,7 @@ class StationsFetcher:
                     if latitude and longitude:
                         lat_float = float(latitude)
                         lon_float = float(longitude)
-                        is_lombardia_coords = (44.5 <= lat_float <= 46.5 and 8.5 <= lon_float <= 11.5)
+                        is_lombardia_coords = self.lombardy_geom.contains(Point(lon_float, lat_float))
                     
                     if not is_lombardia_coords:
                         logger.warning(f"for this {station_data} cords are out of bound")
