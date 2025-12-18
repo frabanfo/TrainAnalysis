@@ -22,7 +22,7 @@ plt.rcParams['font.size'] = 10
 
 def generate_realistic_weather_delay_data():
     """Generate realistic sample data emphasizing weather-delay correlation"""
-    print("Generazione dati demo realistici per analisi tempo-ritardi...")
+    print("Generating realistic demo data for weather-delay analysis...")
     
     # Date range for the last 30 days
     end_date = datetime.now()
@@ -151,16 +151,16 @@ def generate_realistic_weather_delay_data():
                 data.append(record)
     
     df = pd.DataFrame(data)
-    print(f"Generati {len(df):,} record demo")
-    print(f"Periodo: {df['timestamp'].min()} - {df['timestamp'].max()}")
-    print(f"Stazioni: {df['station_code'].nunique()}")
+    print(f"Generated {len(df):,} demo records")
+    print(f"Period: {df['timestamp'].min()} - {df['timestamp'].max()}")
+    print(f"Stations: {df['station_code'].nunique()}")
     
     return df
 
 def run_focused_weather_analysis():
     """Run focused weather-delay analysis"""
     print("\n" + "="*70)
-    print("ANALISI EDA FOCALIZZATA: IMPATTO METEO SUI RITARDI FERROVIARI")
+    print("FOCUSED EDA ANALYSIS: WEATHER IMPACT ON RAILWAY DELAYS")
     print("="*70)
     
     # Generate sample data
@@ -174,11 +174,11 @@ def run_focused_weather_analysis():
     # Key statistics
     complete_data = df.dropna(subset=['delay_minutes'])
     
-    print(f"\n📊 STATISTICHE CHIAVE:")
-    print(f"   • Record totali: {len(df):,}")
-    print(f"   • Ritardo medio: {complete_data['delay_minutes'].mean():.2f} minuti")
-    print(f"   • Treni in ritardo (>5 min): {(complete_data['delay_minutes'] > 5).mean()*100:.1f}%")
-    print(f"   • Giorni con pioggia: {df['is_raining'].mean()*100:.1f}%")
+    print(f"\nKEY STATISTICS:")
+    print(f"   • Total records: {len(df):,}")
+    print(f"   • Average delay: {complete_data['delay_minutes'].mean():.2f} minutes")
+    print(f"   • Delayed trains (>5 min): {(complete_data['delay_minutes'] > 5).mean()*100:.1f}%")
+    print(f"   • Rainy days: {df['is_raining'].mean()*100:.1f}%")
     
     # Weather impact analysis
     rain_delays = complete_data[complete_data['is_raining'] == True]['delay_minutes'].mean()
@@ -189,14 +189,14 @@ def run_focused_weather_analysis():
     precip_corr = df['precip_mm'].corr(df['delay_minutes'])
     wind_corr = df['wind_speed'].corr(df['delay_minutes'])
     
-    print(f"\n🌧️ IMPATTO METEOROLOGICO:")
-    print(f"   • Ritardi con pioggia: {rain_delays:.2f} min")
-    print(f"   • Ritardi con sereno: {clear_delays:.2f} min")
-    print(f"   • Aumento ritardi con pioggia: +{rain_impact:.1f}%")
-    print(f"   • Correlazione precipitazioni-ritardi: {precip_corr:.3f}")
+    print(f"\nWEATHER IMPACT:")
+    print(f"   • Delays with rain: {rain_delays:.2f} min")
+    print(f"   • Delays with clear weather: {clear_delays:.2f} min")
+    print(f"   • Delay increase with rain: +{rain_impact:.1f}%")
+    print(f"   • Precipitation-delay correlation: {precip_corr:.3f}")
     
     # Generate focused visualizations
-    print(f"\n📈 GENERAZIONE VISUALIZZAZIONI FOCALIZZATE...")
+    print(f"\nGENERATING FOCUSED VISUALIZATIONS...")
     
     # 1. Main weather impact visualization
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
@@ -207,7 +207,7 @@ def run_focused_weather_analysis():
     }).round(2)
     rain_comparison.columns = ['mean_delay', 'std_delay', 'count']
     
-    rain_labels = ['Tempo Sereno', 'Tempo Piovoso']
+    rain_labels = ['Clear Weather', 'Rainy Weather']
     colors = ['lightblue', 'darkblue']
     bars = axes[0,0].bar(range(len(rain_comparison)), rain_comparison['mean_delay'], 
                         yerr=rain_comparison['std_delay'], capsize=8,
@@ -217,14 +217,14 @@ def run_focused_weather_analysis():
         axes[0,0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.3,
                       f'{mean_val:.1f} min\\n(n={count:,})', ha='center', va='bottom', fontweight='bold')
     
-    axes[0,0].set_title('🌧️ IMPATTO DELLA PIOGGIA SUI RITARDI', fontsize=14, fontweight='bold')
-    axes[0,0].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+    axes[0,0].set_title('Impact of Rain on Railway Delays', fontsize=14, fontweight='bold')
+    axes[0,0].set_ylabel('Average Delay (minutes)', fontsize=12)
     axes[0,0].set_xticks(range(len(rain_labels)))
     axes[0,0].set_xticklabels(rain_labels, fontsize=12)
     axes[0,0].grid(axis='y', alpha=0.3)
     
     # Add impact percentage
-    axes[0,0].text(0.5, 0.95, f'Aumento: +{rain_impact:.1f}%', 
+    axes[0,0].text(0.5, 0.95, f'Increase: +{rain_impact:.1f}%', 
                   transform=axes[0,0].transAxes, ha='center', va='top',
                   bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.8),
                   fontsize=12, fontweight='bold')
@@ -232,7 +232,7 @@ def run_focused_weather_analysis():
     # Precipitation intensity analysis
     complete_data['precip_category'] = pd.cut(complete_data['precip_mm'], 
                                              bins=[-0.1, 0, 0.5, 2, 10], 
-                                             labels=['Assente', 'Leggera', 'Moderata', 'Intensa'])
+                                             labels=['None', 'Light', 'Moderate', 'Heavy'])
     
     precip_delays = complete_data.groupby('precip_category')['delay_minutes'].agg(['mean', 'count'])
     precip_delays = precip_delays[precip_delays['count'] >= 10]
@@ -241,8 +241,8 @@ def run_focused_weather_analysis():
         colors_precip = ['lightgreen', 'yellow', 'orange', 'red'][:len(precip_delays)]
         axes[0,1].bar(range(len(precip_delays)), precip_delays['mean'], 
                      color=colors_precip, alpha=0.8, edgecolor='black')
-        axes[0,1].set_title('☔ RITARDI PER INTENSITÀ PIOGGIA', fontsize=14, fontweight='bold')
-        axes[0,1].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+        axes[0,1].set_title('Delays by Precipitation Intensity', fontsize=14, fontweight='bold')
+        axes[0,1].set_ylabel('Average Delay (minutes)', fontsize=12)
         axes[0,1].set_xticks(range(len(precip_delays)))
         axes[0,1].set_xticklabels(precip_delays.index, fontsize=12)
         axes[0,1].grid(axis='y', alpha=0.3)
@@ -252,10 +252,10 @@ def run_focused_weather_analysis():
     if not rush_weather.empty:
         rush_weather.plot(kind='bar', ax=axes[1,0], color=['lightcoral', 'darkred'], 
                          alpha=0.8, width=0.7)
-        axes[1,0].set_title('⏰ ORA DI PUNTA + CONDIZIONI METEO', fontsize=14, fontweight='bold')
-        axes[1,0].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
-        axes[1,0].set_xticklabels(['Ore Normali', 'Ora di Punta'], rotation=0)
-        axes[1,0].legend(['Sereno', 'Pioggia'], fontsize=11)
+        axes[1,0].set_title('Rush Hour and Weather Conditions', fontsize=14, fontweight='bold')
+        axes[1,0].set_ylabel('Average Delay (minutes)', fontsize=12)
+        axes[1,0].set_xticklabels(['Regular Hours', 'Rush Hour'], rotation=0)
+        axes[1,0].legend(['Clear', 'Rain'], fontsize=11)
         axes[1,0].grid(axis='y', alpha=0.3)
     
     # Top affected stations
@@ -279,8 +279,8 @@ def run_focused_weather_analysis():
                              color='steelblue', alpha=0.8, edgecolor='black')
         axes[1,1].set_yticks(range(len(impact_df)))
         axes[1,1].set_yticklabels(impact_df['station'], fontsize=10)
-        axes[1,1].set_title('🚉 STAZIONI PIÙ COLPITE DAL MALTEMPO', fontsize=14, fontweight='bold')
-        axes[1,1].set_xlabel('Aumento % Ritardi con Pioggia', fontsize=12)
+        axes[1,1].set_title('Stations Most Affected by Bad Weather', fontsize=14, fontweight='bold')
+        axes[1,1].set_xlabel('Delay Increase % with Rain', fontsize=12)
         axes[1,1].grid(axis='x', alpha=0.3)
     
     plt.tight_layout()
@@ -305,12 +305,12 @@ def run_focused_weather_analysis():
         x_trend = np.linspace(0, complete_data['precip_mm'].max(), 100)
         axes[0].plot(x_trend, p(x_trend), "r-", linewidth=3, alpha=0.8)
     
-    axes[0].set_xlabel('Precipitazioni (mm)', fontsize=12)
-    axes[0].set_ylabel('Ritardo (minuti)', fontsize=12)
-    axes[0].set_title('🌧️ CORRELAZIONE PIOGGIA-RITARDI', fontsize=14, fontweight='bold')
+    axes[0].set_xlabel('Precipitation (mm)', fontsize=12)
+    axes[0].set_ylabel('Delay (minutes)', fontsize=12)
+    axes[0].set_title('Precipitation-Delay Correlation', fontsize=14, fontweight='bold')
     axes[0].grid(True, alpha=0.3)
     
-    axes[0].text(0.05, 0.95, f'Correlazione: {precip_corr:.3f}', 
+    axes[0].text(0.05, 0.95, f'Correlation: {precip_corr:.3f}', 
                 transform=axes[0].transAxes, fontsize=12, fontweight='bold',
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
@@ -320,15 +320,15 @@ def run_focused_weather_analysis():
     hourly_clear = complete_data[~complete_data['is_raining']].groupby('hour_of_day')['delay_minutes'].mean()
     
     axes[1].plot(hourly_all.index, hourly_all.values, 'o-', linewidth=3, 
-                label='Media generale', color='gray', markersize=6)
+                label='Overall average', color='gray', markersize=6)
     axes[1].plot(hourly_rain.index, hourly_rain.values, 's-', linewidth=3, 
-                label='Giorni piovosi', color='blue', markersize=6)
+                label='Rainy days', color='blue', markersize=6)
     axes[1].plot(hourly_clear.index, hourly_clear.values, '^-', linewidth=3, 
-                label='Giorni sereni', color='orange', markersize=6)
+                label='Clear days', color='orange', markersize=6)
     
-    axes[1].set_title('⏰ PATTERN ORARI CON CONDIZIONI METEO', fontsize=14, fontweight='bold')
-    axes[1].set_xlabel('Ora del Giorno', fontsize=12)
-    axes[1].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+    axes[1].set_title('Hourly Patterns with Weather Conditions', fontsize=14, fontweight='bold')
+    axes[1].set_xlabel('Hour of Day', fontsize=12)
+    axes[1].set_ylabel('Average Delay (minutes)', fontsize=12)
     axes[1].legend(fontsize=11)
     axes[1].grid(True, alpha=0.3)
     axes[1].set_xticks(range(0, 24, 2))
@@ -337,13 +337,13 @@ def run_focused_weather_analysis():
     plt.savefig(f'{figures_dir}/correlation_temporal_analysis.png', dpi=300, bbox_inches='tight')
     plt.show()
     
-    print(f"\n✅ ANALISI COMPLETATA!")
-    print(f"📁 Grafici salvati in '{figures_dir}/'")
-    print(f"\n🎯 RISULTATI CHIAVE:")
-    print(f"   • La pioggia aumenta i ritardi del {rain_impact:.1f}%")
-    print(f"   • Correlazione precipitazioni-ritardi: {precip_corr:.3f}")
-    print(f"   • Effetto combinato pioggia + ora di punta particolarmente critico")
-    print(f"   • Alcune stazioni sono più vulnerabili alle condizioni meteorologiche")
+    print(f"\nANALYSIS COMPLETED!")
+    print(f"Figures saved in '{figures_dir}/'")
+    print(f"\nKEY RESULTS:")
+    print(f"   • Rain increases delays by {rain_impact:.1f}%")
+    print(f"   • Precipitation-delay correlation: {precip_corr:.3f}")
+    print(f"   • Combined effect of rain + rush hour is particularly critical")
+    print(f"   • Some stations are more vulnerable to weather conditions")
     
     return df
 

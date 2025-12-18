@@ -157,7 +157,7 @@ class RailwayWeatherEDA:
         }).round(2)
         rain_comparison.columns = ['mean_delay', 'std_delay', 'count']
         
-        rain_labels = ['Tempo Sereno', 'Tempo Piovoso']
+        rain_labels = ['Clear Weather', 'Rainy Weather']
         colors = ['lightblue', 'darkblue']
         bars = axes[0,0].bar(range(len(rain_comparison)), rain_comparison['mean_delay'], 
                             yerr=rain_comparison['std_delay'], capsize=8,
@@ -168,8 +168,8 @@ class RailwayWeatherEDA:
             axes[0,0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.2,
                           f'{mean_val:.1f} min\n(n={count:,})', ha='center', va='bottom', fontweight='bold')
         
-        axes[0,0].set_title('Impatto della Pioggia sui Ritardi Ferroviari', fontsize=14, fontweight='bold')
-        axes[0,0].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+        axes[0,0].set_title('Impact of Rain on Railway Delays', fontsize=14, fontweight='bold')
+        axes[0,0].set_ylabel('Average Delay (minutes)', fontsize=12)
         axes[0,0].set_xticks(range(len(rain_labels)))
         axes[0,0].set_xticklabels(rain_labels, fontsize=12)
         axes[0,0].grid(axis='y', alpha=0.3)
@@ -178,7 +178,7 @@ class RailwayWeatherEDA:
         if len(rain_comparison) == 2:
             increase = ((rain_comparison.iloc[1]['mean_delay'] - rain_comparison.iloc[0]['mean_delay']) / 
                        rain_comparison.iloc[0]['mean_delay']) * 100
-            axes[0,0].text(0.5, 0.95, f'Aumento ritardi: +{increase:.1f}%', 
+            axes[0,0].text(0.5, 0.95, f'Delay increase: +{increase:.1f}%', 
                           transform=axes[0,0].transAxes, ha='center', va='top',
                           bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7),
                           fontsize=11, fontweight='bold')
@@ -186,7 +186,7 @@ class RailwayWeatherEDA:
         # 2. Precipitation intensity vs delays
         complete_data['precip_category'] = pd.cut(complete_data['precip_mm'], 
                                                  bins=[-0.1, 0, 0.5, 2, 10], 
-                                                 labels=['Assente', 'Leggera', 'Moderata', 'Intensa'])
+                                                 labels=['None', 'Light', 'Moderate', 'Heavy'])
         
         precip_delays = complete_data.groupby('precip_category')['delay_minutes'].agg(['mean', 'count'])
         precip_delays = precip_delays[precip_delays['count'] >= 100]  # Filter for significance
@@ -195,8 +195,8 @@ class RailwayWeatherEDA:
             axes[0,1].bar(range(len(precip_delays)), precip_delays['mean'], 
                          color=['lightgreen', 'yellow', 'orange', 'red'][:len(precip_delays)], 
                          alpha=0.8, edgecolor='black')
-            axes[0,1].set_title('Ritardi per Intensità di Precipitazione', fontsize=14, fontweight='bold')
-            axes[0,1].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+            axes[0,1].set_title('Delays by Precipitation Intensity', fontsize=14, fontweight='bold')
+            axes[0,1].set_ylabel('Average Delay (minutes)', fontsize=12)
             axes[0,1].set_xticks(range(len(precip_delays)))
             axes[0,1].set_xticklabels(precip_delays.index, fontsize=12)
             axes[0,1].grid(axis='y', alpha=0.3)
@@ -204,7 +204,7 @@ class RailwayWeatherEDA:
         # 3. Temperature extremes impact
         complete_data['temp_category'] = pd.cut(complete_data['temperature'], 
                                                bins=[-10, 0, 5, 15, 25, 40], 
-                                               labels=['Molto Freddo', 'Freddo', 'Fresco', 'Mite', 'Caldo'])
+                                               labels=['Very Cold', 'Cold', 'Cool', 'Mild', 'Hot'])
         
         temp_delays = complete_data.groupby('temp_category')['delay_minutes'].agg(['mean', 'count'])
         temp_delays = temp_delays[temp_delays['count'] >= 100]
@@ -213,31 +213,31 @@ class RailwayWeatherEDA:
             temp_colors = ['darkblue', 'blue', 'lightblue', 'orange', 'red'][:len(temp_delays)]
             axes[1,0].bar(range(len(temp_delays)), temp_delays['mean'], 
                          color=temp_colors, alpha=0.8, edgecolor='black')
-            axes[1,0].set_title('Ritardi per Categoria di Temperatura', fontsize=14, fontweight='bold')
-            axes[1,0].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+            axes[1,0].set_title('Delays by Temperature Category', fontsize=14, fontweight='bold')
+            axes[1,0].set_ylabel('Average Delay (minutes)', fontsize=12)
             axes[1,0].set_xticks(range(len(temp_delays)))
             axes[1,0].set_xticklabels(temp_delays.index, rotation=45, fontsize=12)
             axes[1,0].grid(axis='y', alpha=0.3)
         
         # 4. Combined weather conditions (rain + temperature)
         complete_data['weather_condition'] = complete_data.apply(lambda x: 
-            'Pioggia + Freddo' if x['is_raining'] and x['temperature'] < 5 else
-            'Pioggia + Mite' if x['is_raining'] and x['temperature'] >= 5 else
-            'Sereno + Freddo' if not x['is_raining'] and x['temperature'] < 5 else
-            'Sereno + Mite', axis=1)
+            'Rain + Cold' if x['is_raining'] and x['temperature'] < 5 else
+            'Rain + Mild' if x['is_raining'] and x['temperature'] >= 5 else
+            'Clear + Cold' if not x['is_raining'] and x['temperature'] < 5 else
+            'Clear + Mild', axis=1)
         
         weather_delays = complete_data.groupby('weather_condition')['delay_minutes'].agg(['mean', 'count'])
         weather_delays = weather_delays[weather_delays['count'] >= 50]
         
         if not weather_delays.empty:
-            condition_colors = {'Pioggia + Freddo': 'darkblue', 'Pioggia + Mite': 'blue', 
-                               'Sereno + Freddo': 'lightblue', 'Sereno + Mite': 'lightgreen'}
+            condition_colors = {'Rain + Cold': 'darkblue', 'Rain + Mild': 'blue', 
+                               'Clear + Cold': 'lightblue', 'Clear + Mild': 'lightgreen'}
             colors = [condition_colors.get(cond, 'gray') for cond in weather_delays.index]
             
             axes[1,1].bar(range(len(weather_delays)), weather_delays['mean'], 
                          color=colors, alpha=0.8, edgecolor='black')
-            axes[1,1].set_title('Ritardi per Condizioni Meteorologiche Combinate', fontsize=14, fontweight='bold')
-            axes[1,1].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+            axes[1,1].set_title('Delays by Combined Weather Conditions', fontsize=14, fontweight='bold')
+            axes[1,1].set_ylabel('Average Delay (minutes)', fontsize=12)
             axes[1,1].set_xticks(range(len(weather_delays)))
             axes[1,1].set_xticklabels(weather_delays.index, rotation=45, fontsize=10)
             axes[1,1].grid(axis='y', alpha=0.3)
@@ -262,12 +262,12 @@ class RailwayWeatherEDA:
             if not rush_weather.empty:
                 rush_weather.plot(kind='bar', ax=axes[0,0], color=['lightblue', 'darkblue'], 
                                  alpha=0.8, width=0.7)
-                axes[0,0].set_title('Ritardi: Ora di Punta vs Condizioni Meteorologiche', 
+                axes[0,0].set_title('Delays: Rush Hour vs Weather Conditions', 
                                    fontsize=14, fontweight='bold')
-                axes[0,0].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
-                axes[0,0].set_xlabel('Periodo', fontsize=12)
-                axes[0,0].set_xticklabels(['Ore Normali', 'Ora di Punta'], rotation=0)
-                axes[0,0].legend(['Sereno', 'Pioggia'], fontsize=11)
+                axes[0,0].set_ylabel('Average Delay (minutes)', fontsize=12)
+                axes[0,0].set_xlabel('Time Period', fontsize=12)
+                axes[0,0].set_xticklabels(['Regular Hours', 'Rush Hour'], rotation=0)
+                axes[0,0].legend(['Clear', 'Rain'], fontsize=11)
                 axes[0,0].grid(axis='y', alpha=0.3)
         
         # 2. Hourly patterns with weather overlay
@@ -277,16 +277,16 @@ class RailwayWeatherEDA:
             hourly_clear = df[df['is_raining'] == False].groupby('hour_of_day')['delay_minutes'].mean()
             
             axes[0,1].plot(hourly_all.index, hourly_all.values, 'o-', linewidth=2, 
-                          label='Tutti i giorni', color='gray', markersize=4)
+                          label='All days', color='gray', markersize=4)
             axes[0,1].plot(hourly_rain.index, hourly_rain.values, 's-', linewidth=2, 
-                          label='Giorni piovosi', color='blue', markersize=4)
+                          label='Rainy days', color='blue', markersize=4)
             axes[0,1].plot(hourly_clear.index, hourly_clear.values, '^-', linewidth=2, 
-                          label='Giorni sereni', color='orange', markersize=4)
+                          label='Clear days', color='orange', markersize=4)
             
-            axes[0,1].set_title('Ritardi per Ora del Giorno e Condizioni Meteo', 
+            axes[0,1].set_title('Delays by Hour of Day and Weather Conditions', 
                                fontsize=14, fontweight='bold')
-            axes[0,1].set_xlabel('Ora del Giorno', fontsize=12)
-            axes[0,1].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+            axes[0,1].set_xlabel('Hour of Day', fontsize=12)
+            axes[0,1].set_ylabel('Average Delay (minutes)', fontsize=12)
             axes[0,1].legend(fontsize=11)
             axes[0,1].grid(True, alpha=0.3)
             axes[0,1].set_xticks(range(0, 24, 2))
@@ -301,15 +301,15 @@ class RailwayWeatherEDA:
                 
                 if False in daily_weather.columns:
                     axes[1,0].plot(daily_weather.index, daily_weather[False], 
-                                  'o-', alpha=0.7, label='Giorni Sereni', color='orange', markersize=3)
+                                  'o-', alpha=0.7, label='Clear Days', color='orange', markersize=3)
                 if True in daily_weather.columns:
                     axes[1,0].plot(daily_weather.index, daily_weather[True], 
-                                  's-', alpha=0.7, label='Giorni Piovosi', color='blue', markersize=3)
+                                  's-', alpha=0.7, label='Rainy Days', color='blue', markersize=3)
                 
-                axes[1,0].set_title('Evoluzione Temporale: Ritardi e Condizioni Meteo', 
+                axes[1,0].set_title('Temporal Evolution: Delays and Weather Conditions', 
                                    fontsize=14, fontweight='bold')
-                axes[1,0].set_xlabel('Data', fontsize=12)
-                axes[1,0].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
+                axes[1,0].set_xlabel('Date', fontsize=12)
+                axes[1,0].set_ylabel('Average Delay (minutes)', fontsize=12)
                 axes[1,0].legend(fontsize=11)
                 axes[1,0].grid(True, alpha=0.3)
                 axes[1,0].tick_params(axis='x', rotation=45)
@@ -321,12 +321,12 @@ class RailwayWeatherEDA:
             if not weekend_weather.empty:
                 weekend_weather.plot(kind='bar', ax=axes[1,1], color=['lightgreen', 'darkgreen'], 
                                     alpha=0.8, width=0.7)
-                axes[1,1].set_title('Ritardi: Weekend vs Feriali con Condizioni Meteo', 
+                axes[1,1].set_title('Delays: Weekend vs Weekdays with Weather Conditions', 
                                    fontsize=14, fontweight='bold')
-                axes[1,1].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
-                axes[1,1].set_xlabel('Tipo di Giorno', fontsize=12)
-                axes[1,1].set_xticklabels(['Giorni Feriali', 'Weekend'], rotation=0)
-                axes[1,1].legend(['Sereno', 'Pioggia'], fontsize=11)
+                axes[1,1].set_ylabel('Average Delay (minutes)', fontsize=12)
+                axes[1,1].set_xlabel('Day Type', fontsize=12)
+                axes[1,1].set_xticklabels(['Weekdays', 'Weekend'], rotation=0)
+                axes[1,1].legend(['Clear', 'Rain'], fontsize=11)
                 axes[1,1].grid(axis='y', alpha=0.3)
         
         plt.tight_layout()
@@ -360,8 +360,8 @@ class RailwayWeatherEDA:
                                  color='coral', alpha=0.8, edgecolor='black')
             axes[0,0].set_yticks(range(len(top_delay_stations)))
             axes[0,0].set_yticklabels(station_names, fontsize=10)
-            axes[0,0].set_title('Top 10 Stazioni per Ritardo Medio', fontsize=14, fontweight='bold')
-            axes[0,0].set_xlabel('Ritardo Medio (minuti)', fontsize=12)
+            axes[0,0].set_title('Top 10 Stations by Average Delay', fontsize=14, fontweight='bold')
+            axes[0,0].set_xlabel('Average Delay (minutes)', fontsize=12)
             axes[0,0].grid(axis='x', alpha=0.3)
             
             # Add value labels
@@ -381,8 +381,8 @@ class RailwayWeatherEDA:
                          color='lightgreen', alpha=0.8, edgecolor='black')
             axes[0,1].set_xticks(range(len(top_volume_stations)))
             axes[0,1].set_xticklabels(volume_names, rotation=45, ha='right', fontsize=10)
-            axes[0,1].set_title('Top 10 Stazioni per Volume di Traffico', fontsize=14, fontweight='bold')
-            axes[0,1].set_ylabel('Numero di Treni', fontsize=12)
+            axes[0,1].set_title('Top 10 Stations by Traffic Volume', fontsize=14, fontweight='bold')
+            axes[0,1].set_ylabel('Number of Trains', fontsize=12)
             axes[0,1].grid(axis='y', alpha=0.3)
         
         # 3. Weather impact by major stations
@@ -397,11 +397,11 @@ class RailwayWeatherEDA:
             if not weather_by_station.empty:
                 weather_by_station.plot(kind='bar', ax=axes[1,0], 
                                        color=['lightblue', 'darkblue'], alpha=0.8, width=0.8)
-                axes[1,0].set_title('Impatto Meteo nelle Principali Stazioni', 
+                axes[1,0].set_title('Weather Impact at Major Stations', 
                                    fontsize=14, fontweight='bold')
-                axes[1,0].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
-                axes[1,0].set_xlabel('Stazione', fontsize=12)
-                axes[1,0].legend(['Sereno', 'Pioggia'], fontsize=11)
+                axes[1,0].set_ylabel('Average Delay (minutes)', fontsize=12)
+                axes[1,0].set_xlabel('Station', fontsize=12)
+                axes[1,0].legend(['Clear', 'Rain'], fontsize=11)
                 axes[1,0].tick_params(axis='x', rotation=45)
                 axes[1,0].grid(axis='y', alpha=0.3)
         
@@ -414,11 +414,11 @@ class RailwayWeatherEDA:
                 category_means = category_weather['mean'].unstack(fill_value=0)
                 category_means.plot(kind='bar', ax=axes[1,1], 
                                    color=['lightcoral', 'darkred'], alpha=0.8, width=0.8)
-                axes[1,1].set_title('Performance per Categoria Treno e Condizioni Meteo', 
+                axes[1,1].set_title('Performance by Train Category and Weather Conditions', 
                                    fontsize=14, fontweight='bold')
-                axes[1,1].set_ylabel('Ritardo Medio (minuti)', fontsize=12)
-                axes[1,1].set_xlabel('Categoria Treno', fontsize=12)
-                axes[1,1].legend(['Sereno', 'Pioggia'], fontsize=11)
+                axes[1,1].set_ylabel('Average Delay (minutes)', fontsize=12)
+                axes[1,1].set_xlabel('Train Category', fontsize=12)
+                axes[1,1].legend(['Clear', 'Rain'], fontsize=11)
                 axes[1,1].tick_params(axis='x', rotation=0)
                 axes[1,1].grid(axis='y', alpha=0.3)
         
@@ -444,14 +444,14 @@ class RailwayWeatherEDA:
         weather_vars = ['delay_minutes', 'temperature', 'precip_mm', 'wind_speed']
         correlation_matrix = complete_data[weather_vars].corr()
         
-        # Create custom labels in Italian
-        labels = ['Ritardi\n(min)', 'Temperatura\n(°C)', 'Precipitazioni\n(mm)', 'Vento\n(km/h)']
+        # Create custom labels in English
+        labels = ['Delays\n(min)', 'Temperature\n(°C)', 'Precipitation\n(mm)', 'Wind\n(km/h)']
         
         mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
         sns.heatmap(correlation_matrix, mask=mask, annot=True, cmap='RdBu_r', center=0, 
-                   square=True, fmt='.3f', cbar_kws={'label': 'Coefficiente di Correlazione'},
+                   square=True, fmt='.3f', cbar_kws={'label': 'Correlation Coefficient'},
                    xticklabels=labels, yticklabels=labels, ax=axes[0])
-        axes[0].set_title('Matrice di Correlazione: Variabili Meteorologiche e Ritardi', 
+        axes[0].set_title('Correlation Matrix: Weather Variables and Delays', 
                          fontsize=14, fontweight='bold')
         
         # 2. Scatter plot: Precipitation vs Delays (most important relationship)
@@ -471,22 +471,22 @@ class RailwayWeatherEDA:
             x_trend = np.linspace(0, complete_data['precip_mm'].max(), 100)
             axes[1].plot(x_trend, p(x_trend), "r-", linewidth=2, alpha=0.8)
         
-        axes[1].set_xlabel('Precipitazioni (mm)', fontsize=12)
-        axes[1].set_ylabel('Ritardo (minuti)', fontsize=12)
-        axes[1].set_title('Relazione Precipitazioni-Ritardi', fontsize=14, fontweight='bold')
+        axes[1].set_xlabel('Precipitation (mm)', fontsize=12)
+        axes[1].set_ylabel('Delay (minutes)', fontsize=12)
+        axes[1].set_title('Precipitation-Delay Relationship', fontsize=14, fontweight='bold')
         axes[1].grid(True, alpha=0.3)
         
         # Add correlation coefficient
         corr_coef = complete_data['precip_mm'].corr(complete_data['delay_minutes'])
-        axes[1].text(0.05, 0.95, f'Correlazione: {corr_coef:.3f}', 
+        axes[1].text(0.05, 0.95, f'Correlation: {corr_coef:.3f}', 
                     transform=axes[1].transAxes, fontsize=12, fontweight='bold',
                     bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         
         # Add legend for colors
         from matplotlib.patches import Patch
-        legend_elements = [Patch(facecolor='lightblue', label='Assenti (0 mm)'),
-                          Patch(facecolor='orange', label='Leggere (0.1-1 mm)'),
-                          Patch(facecolor='red', label='Intense (>1 mm)')]
+        legend_elements = [Patch(facecolor='lightblue', label='None (0 mm)'),
+                          Patch(facecolor='orange', label='Light (0.1-1 mm)'),
+                          Patch(facecolor='red', label='Heavy (>1 mm)')]
         axes[1].legend(handles=legend_elements, loc='upper right', fontsize=10)
         
         plt.tight_layout()
@@ -495,14 +495,14 @@ class RailwayWeatherEDA:
         
         # Print key correlations
         print("\n" + "="*50)
-        print("CORRELAZIONI CHIAVE CON I RITARDI:")
+        print("KEY CORRELATIONS WITH DELAYS:")
         print("="*50)
         for var in ['temperature', 'precip_mm', 'wind_speed']:
             corr = complete_data[var].corr(complete_data['delay_minutes'])
             significance = "***" if abs(corr) > 0.1 else "**" if abs(corr) > 0.05 else "*" if abs(corr) > 0.01 else ""
-            var_name = {'temperature': 'Temperatura', 'precip_mm': 'Precipitazioni', 'wind_speed': 'Vento'}[var]
+            var_name = {'temperature': 'Temperature', 'precip_mm': 'Precipitation', 'wind_speed': 'Wind Speed'}[var]
             print(f"  {var_name}: {corr:.4f} {significance}")
-        print("\nLivelli significatività: *** |r| > 0.1, ** |r| > 0.05, * |r| > 0.01")
+        print("\nSignificance levels: *** |r| > 0.1, ** |r| > 0.05, * |r| > 0.01")
     
 
     
@@ -570,7 +570,7 @@ class RailwayWeatherEDA:
     
     def run_complete_eda(self):
         """Run the focused EDA analysis"""
-        print("Analisi EDA: Correlazione Tempo-Ritardi Ferroviari in Lombardia")
+        print("EDA Analysis: Weather-Railway Delay Correlation in Lombardy")
         print("="*70)
         
         # Load data
@@ -579,28 +579,28 @@ class RailwayWeatherEDA:
         # Generate focused analyses
         self.data_overview()
         
-        print("\n🌧️ Generazione analisi impatto meteorologico...")
+        print("\nGenerating weather impact analysis...")
         self.plot_weather_impact_analysis()
         
-        print("\n⏰ Generazione analisi pattern temporali...")
+        print("\nGenerating temporal pattern analysis...")
         self.plot_temporal_weather_patterns()
         
-        print("\n🚉 Generazione analisi performance stazioni...")
+        print("\nGenerating station performance analysis...")
         self.plot_station_performance_analysis()
         
-        print("\n📊 Generazione analisi correlazioni...")
+        print("\nGenerating correlation analysis...")
         self.plot_correlation_analysis()
         
         self.generate_summary_statistics()
         
-        print(f"\n✅ EDA COMPLETATA!")
-        print(f"📁 Grafici salvati in '{self.figures_dir}/'")
-        print("\n🎯 DOMANDE DI RICERCA AFFRONTATE:")
-        print("1. ✓ Correlazione tra condizioni meteorologiche e ritardi ferroviari")
-        print("2. ✓ Pattern temporali (ore di punta, giorni della settimana)")
-        print("3. ✓ Analisi spaziale (performance per stazione)")
-        print("4. ✓ Impatto operativo (categorie treni, condizioni combinate)")
-        print("5. ✓ Quantificazione dell'effetto del maltempo sui ritardi")
+        print(f"\nEDA COMPLETED!")
+        print(f"Figures saved in '{self.figures_dir}/'")
+        print("\nRESEARCH QUESTIONS ADDRESSED:")
+        print("1. Correlation between weather conditions and railway delays")
+        print("2. Temporal patterns (rush hours, days of the week)")
+        print("3. Spatial analysis (station performance)")
+        print("4. Operational impact (train categories, combined conditions)")
+        print("5. Quantification of bad weather effect on delays")
 
 
 if __name__ == "__main__":
